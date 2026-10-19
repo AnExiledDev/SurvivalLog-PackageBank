@@ -23,6 +23,7 @@ internal sealed class GameBank : IBankGame
     private IReadOnlySet<int>? _storyFurniture;
     private IconIndex? _icons;
     private int _loggedHomeCount = -1;
+    private string? _loggedNotReady;
 
     public GameBank(GameShop shop, Action<string> log)
     {
@@ -129,16 +130,21 @@ internal sealed class GameBank : IBankGame
     {
         var game = LoadedGame();
 
-        if (game == null) return new BankRead.NoGame();
+        if (game == null) return NotReady(new BankRead.NoGame(), "no game loaded");
 
-        var (_, config, agents, role) = game.Value;
+        var (world, config, agents, role) = game.Value;
+        var mode = world.GameModeKey;
 
-        if (!IsHome(agents)) return new BankRead.Away();
+        if (mode == GameMode.Explore) return NotReady(new BankRead.Away(), "on an expedition");
+        if (mode != GameMode.Default) return NotReady(new BankRead.NoGame(), $"game mode {mode}");
 
         var build = AgentTools.GetAgentComponent<BuildComponent>(role);
         var counters = Counters();
 
-        if (build == null || counters == null) return new BankRead.NoGame();
+        if (build == null) return NotReady(new BankRead.NoGame(), "the character has no build component");
+        if (counters == null) return NotReady(new BankRead.NoGame(), "the save's counters are missing");
+
+        _loggedNotReady = null;
 
         var contents = BankCounters.Read(Copy(counters));
         var home = ReadHome(config, agents, build);
@@ -273,18 +279,14 @@ internal sealed class GameBank : IBankGame
         return (world, config, agents, role);
     }
 
-    private bool IsHome(AgentManager agents)
+    /// <summary>Logs why the bank is shut, once each time the reason changes, so a hidden HUD button can be explained.</summary>
+    private BankRead NotReady(BankRead read, string reason)
     {
-        try
-        {
-            return agents.IsHomeMap(ExploreSearchStateManager.GetCurrentMapId());
-        }
-        catch (Exception ex)
-        {
-            ReportOnce("home check", ex);
+        if (reason != _loggedNotReady) _log($"bank shut: {reason}");
 
-            return false;
-        }
+        _loggedNotReady = reason;
+
+        return read;
     }
 
     private static UnityEngine.Vector3 PositionOf(BaseAgent agent) => AgentTools.GetAgentComponent<TransformComponent>(agent)?.Position ?? UnityEngine.Vector3.zero;
