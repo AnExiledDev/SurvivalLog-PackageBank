@@ -23,6 +23,7 @@ public static class BankView
         json.Append(",\"home\":[").Append(string.Join(",", bank.Home.Select(package => Home(bank, limits, package)))).Append(']');
         json.Append(",\"bank\":[").Append(string.Join(",", bank.Banked.Select(Banked))).Append(']');
         json.Append(",\"takeWhy\":").Append(bank.FreeSpots > 0 ? "null" : Str("noSpot"));
+        json.Append(",\"menu\":").Append(Menu(bank, limits));
         json.Append(",\"shop\":").Append(bank.Shop is null ? "null" : "[" + string.Join(",", bank.Shop.Select(row => ShopRow(bank, limits, row)).Where(row => row != null)) + "]");
 
         return json.Append('}').ToString();
@@ -52,6 +53,14 @@ public static class BankView
         + ",\"size\":" + SizeKey(banked.Size)
         + ",\"looted\":" + Bool(!banked.Entry.IsPurchased)
         + "}";
+
+    /// <summary>Null unless the game's click menu is open on a yard package the bank lists; the car's and the doors' boxes are not.</summary>
+    private static string Menu(Bank bank, BankLimits limits)
+    {
+        var package = bank.Home.FirstOrDefault(candidate => candidate.Id == bank.Menu);
+
+        return package is null ? "null" : "{\"why\":" + Why(BankRun.Refusal(bank, limits, package)) + "}";
+    }
 
     /// <summary>A shop row with no bought yard package behind it gets no Bank button, so it is left out.</summary>
     private static string? ShopRow(Bank bank, BankLimits limits, ShopRow row)

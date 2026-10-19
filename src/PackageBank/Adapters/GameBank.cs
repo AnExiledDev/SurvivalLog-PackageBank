@@ -73,6 +73,7 @@ internal sealed class GameBank : IBankGame
         }
 
         _log($"banked {package.Name} (furniture {package.ConfigId}, package {package.Id}) into slot {entry.Slot}");
+        Softly("close the click menu", () => GameMenu.CloseIfOn(package.Id));
 
         if (package.IsPurchased) _shop.Banked(shopIndex, package.ConfigId, package.Paid, SlotTypeOf(package.ConfigId));
 
@@ -152,7 +153,7 @@ internal sealed class GameBank : IBankGame
 
         LogHomeCount(home.Count);
 
-        return new BankRead.Ready(new Bank(home, banked, contents.Bonus, build.GetFreePackagePointCount(), _shop.Rows()));
+        return new BankRead.Ready(new Bank(home, banked, contents.Bonus, build.GetFreePackagePointCount(), _shop.Rows(), MenuOpenOn()));
     }
 
     /// <summary>Only the yard's numbered spots: the car's spot and the boxes by the doors are left alone.</summary>
@@ -174,7 +175,9 @@ internal sealed class GameBank : IBankGame
             var isPurchased = sources != null && sources.ContainsKey(id);
             var row = config.Get_Config_Furniture(configId);
             var size = row == null ? null : PackageSizes.Of(row.SlotType, StoryFurniture(config).Contains(configId));
-            var isBusy = bag.IsSelected || bag.IsAltSelected || !bag.IsShow;
+            // IsSelected and IsAltSelected are only the hover highlight (name shown, outline), which every package the
+            // click menu is open on has; a package being carried or placed is hidden instead.
+            var isBusy = !bag.IsShow;
 
             home.Add(new HomePackage(
                 id,
@@ -311,6 +314,28 @@ internal sealed class GameBank : IBankGame
     }
 
     private static string? NonEmpty(string? text) => string.IsNullOrWhiteSpace(text) ? null : text;
+
+    /// <summary>A broken click menu costs only the menu's Bank entry, never the rest of the bank.</summary>
+    private long? MenuOpenOn()
+    {
+        long? id = null;
+
+        Softly("read the click menu", () => id = GameMenu.OpenOn());
+
+        return id;
+    }
+
+    private void Softly(string operation, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            ReportOnce(operation, ex);
+        }
+    }
 
     private void ReportOnce(string operation, Exception ex)
     {

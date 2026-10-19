@@ -109,4 +109,19 @@ public class BankViewTests
 
         Assert.Equal("Bob's \"lamp\" \\ <b>", View(game).GetProperty("home")[0].GetProperty("name").GetString());
     }
+
+    [Fact]
+    public void The_click_menu_gets_a_bank_entry_only_on_a_yard_package_and_with_the_reason_it_is_refused()
+    {
+        var game = new FakeGame();
+        var bed = game.Add(Bed);
+
+        game.Menu = bed.Id;
+        var refused = View(game, Defaults with { Large = 0 }).GetProperty("menu");
+        game.Menu = 77;
+        var notOurs = View(game).GetProperty("menu");
+
+        Assert.Equal("full", refused.GetProperty("why").GetString());
+        Assert.Equal(JsonValueKind.Null, notOurs.ValueKind);
+    }
 }

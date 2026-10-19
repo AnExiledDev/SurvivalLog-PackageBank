@@ -1,13 +1,14 @@
 // Package Bank's web half. Runs in Root.html, the document every game page iframe sits in. Draws the bank panel over
 // all of them, puts a button in the HUD's tool column (bottom left, above the phone and bag buttons) built like the
 // game's own buttons there, and while the build shop is open adds a Bank button beside each Refund button of its
-// package list and the banked packages under that list. Talks to the plugin through
+// package list and the banked packages under that list, and a Bank entry in the click menu of a yard package. Talks to the plugin through
 // vuplex.postMessage("slmod|packagebank|<verb>") and is driven by window.__slpkgbank.
 (function () {
   if (window.__slpkgbank) return;
 
   var PREFIX = 'slmod|packagebank|';
   var HUD_CLASS = 'pb-hud-btn';
+  var MENU_CLASS = 'pb-menu-btn';
   var SHOP_STYLE_ID = 'pb-shop-style';
   var SHOP_BANK_ID = 'pb-shop-bank';
   var SHOP_BUTTON_CLASS = 'pb-bank-btn';
@@ -26,7 +27,7 @@
     emptyBank: 'The bank is empty.', escClose: 'Esc to close'
   };
 
-  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null };
+  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null };
   var ui = null;
   var toastTimer = 0;
   var isBusy = false;
@@ -234,13 +235,21 @@
     if (item.icon) {
       var img = make(doc, 'img');
       img.setAttribute('data-letter', letter);
-      img.src = item.icon;
+      img.src = fromRoot(item.icon);
       box.appendChild(img);
     } else {
       box.textContent = letter;
     }
 
     return box;
+  }
+
+  // Icon paths are relative to the WebUI folder, where Root.html sits. A game page iframe (the shop is in
+  // UI/BuildShop/) would read them from its own folder, so they are made whole against the root page first.
+  function fromRoot(path) {
+    var href = String(location.href || '').split(/[?#]/)[0];
+
+    return href.slice(0, href.lastIndexOf('/') + 1) + path;
   }
 
   function render() {
@@ -369,23 +378,39 @@
     patchPagesSafely();
   }
 
-  // The panel's view while the build shop is open, null otherwise; the shop's buttons and bank rows are drawn from it.
+  // The panel's view while the build shop or the click menu is open, null otherwise; the shop's buttons and bank rows,
+  // and the menu's Bank entry, are drawn from it.
   function shop(data) {
     state.shop = data && data.shop ? data : null;
+    state.menu = data && data.menu ? data.menu : null;
     shopVersion++;
     patchPagesSafely();
   }
 
-  // The HUD and the build shop are same-origin iframes, so their documents can be reached from here; polled because
-  // the game creates and drops those iframes whenever it likes, and the shop redraws its list on every Buy and Refund.
+  // The game pages the bank adds to. The HUD is CoreUI0 in the countdown before the disaster and CoreUI1 after it; the
+  // two draw their tool buttons differently.
+  var PAGES = [
+    { pattern: /CoreUI0\.html/, patch: function (doc) { placeHudButton(doc, prepHudButton); } },
+    { pattern: /CoreUI1\.html/, patch: function (doc) { placeHudButton(doc, hudButton); } },
+    { pattern: /BuildShop\.html/, patch: patchShop },
+    { pattern: /SelectMenu\.html/, patch: patchMenu }
+  ];
+
+  function pageFor(src) {
+    return PAGES.filter(function (page) { return page.pattern.test(src); })[0] || null;
+  }
+
+  // The game's pages are same-origin iframes, so their documents can be reached from here; polled because the game
+  // creates and drops those iframes whenever it likes, the shop redraws its list on every Buy and Refund, and the click
+  // menu redraws its entries every time it opens.
   function patchPages() {
     var frames = document.querySelectorAll('iframe');
 
     for (var i = 0; i < frames.length; i++) {
       var src = frames[i].src || '';
-      var isHud = /CoreUI1\.html/.test(src);
+      var page = pageFor(src);
 
-      if (!isHud && !/BuildShop\.html/.test(src)) continue;
+      if (!page) continue;
 
       var doc = null;
 
@@ -399,8 +424,7 @@
         continue;
       }
 
-      if (isHud) placeHudButton(doc);
-      else patchShop(doc);
+      page.patch(doc);
     }
   }
 
@@ -412,7 +436,7 @@
 
   // First in the tool column: the column is anchored at the bottom, so the first child sits on top and the game's own
   // buttons do not move. The column hides itself in build mode, and the button with it.
-  function placeHudButton(doc) {
+  function placeHudButton(doc, build) {
     var column = doc.querySelector('.vertical-tools');
     var existing = doc.querySelector('.' + HUD_CLASS);
 
@@ -425,20 +449,40 @@
     if (existing && existing.parentNode === column) return;
     if (existing) existing.remove();
 
-    column.insertBefore(hudButton(doc), column.firstChild);
+    column.insertBefore(build(doc), column.firstChild);
 
     if (!hasReportedHudPlaced) send('diag|HUD button placed in the tool column');
     hasReportedHudPlaced = true;
   }
 
-  // The same markup as the game's bag button: its classes, an svg icon, and the hover tip its stylesheet shows. The
-  // HUD page watches its body for new buttons and tells the game where they are, so a click on this one reaches it.
+  // The same markup as CoreUI1's bag button: its classes, an svg icon, and the hover tip its stylesheet shows. Every
+  // game page watches its body for new buttons and tells the game where they are, so a click on this one reaches it.
   function hudButton(doc) {
-    var node = doc.createElement('button');
-    node.className = 'ui-btn icon-sq interactive-btn has-entry-tip ' + HUD_CLASS;
-    node.setAttribute('data-interactive', '');
-    node.appendChild(boxIcon(doc));
+    var node = toggleButton(doc, 'ui-btn icon-sq interactive-btn has-entry-tip ' + HUD_CLASS);
+
     node.appendChild(entryTip(doc));
+
+    return node;
+  }
+
+  // CoreUI0's tool buttons sit in a wrapper with their hover tip beside them, to the right.
+  function prepHudButton(doc) {
+    var wrapper = make(doc, 'div', 'tooltip-wrapper ' + HUD_CLASS);
+    var tip = make(doc, 'div', 'btn-tooltip btn-tooltip--right');
+
+    tip.appendChild(make(doc, 'div', 'tip-name', say('title')));
+    tip.appendChild(make(doc, 'div', 'tip-desc', say('tip')));
+    wrapper.appendChild(toggleButton(doc, 'ui-btn icon-sq interactive-btn'));
+    wrapper.appendChild(tip);
+
+    return wrapper;
+  }
+
+  function toggleButton(doc, className) {
+    var node = make(doc, 'button', className);
+
+    node.setAttribute('data-interactive', '');
+    node.appendChild(boxIcon(doc, 'icon-svg'));
     node.addEventListener('click', function (e) {
       e.stopPropagation();
       send('toggle');
@@ -447,11 +491,53 @@
     return node;
   }
 
-  function boxIcon(doc) {
+  // Shown while the game's click menu is open on a yard package the bank lists, last in its main column. Greyed with
+  // the reason in the menu's own hover tip when the bank would refuse it. The press names no package: the plugin banks
+  // whatever the menu is open on at that moment.
+  function patchMenu(doc) {
+    var why = state.menu ? state.menu.why || '' : null;
+    var container = doc.getElementById('menu-container');
+    var existing = doc.querySelector('.' + MENU_CLASS);
+    var hasGameEntries = container != null && container.querySelectorAll('.menu-btn').length > (existing ? 1 : 0);
+
+    if (why === null || !hasGameEntries) {
+      if (existing) existing.remove();
+
+      return;
+    }
+
+    if (existing && existing.getAttribute('data-why') === why) return;
+    if (existing) existing.remove();
+
+    (container.querySelector('.menu-col') || container).appendChild(menuEntry(doc, why));
+  }
+
+  function menuEntry(doc, why) {
+    var node = make(doc, 'div', 'menu-btn show ' + MENU_CLASS + (why ? ' locked' : ''));
+    var svg = boxIcon(doc, 'menu-btn-icon');
+
+    node.setAttribute('data-interactive', '');
+    node.setAttribute('data-why', why);
+    svg.setAttribute('fill', 'currentColor');
+    node.appendChild(svg);
+    node.appendChild(make(doc, 'span', 'menu-btn-text', say('bank')));
+
+    if (why) node.appendChild(make(doc, 'div', 'menu-btn-tooltip', say(why)));
+
+    node.addEventListener('click', function (e) {
+      e.stopPropagation();
+
+      if (!why) sendAction('menubank');
+    });
+
+    return node;
+  }
+
+  function boxIcon(doc, className) {
     var svg = doc.createElementNS(SVG_NS, 'svg');
     var path = doc.createElementNS(SVG_NS, 'path');
 
-    svg.setAttribute('class', 'icon-svg');
+    svg.setAttribute('class', className);
     svg.setAttribute('viewBox', '0 0 24 24');
     path.setAttribute('d', BOX_PATH);
     svg.appendChild(path);

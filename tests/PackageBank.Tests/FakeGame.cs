@@ -17,6 +17,12 @@ internal sealed class FakeGame : IBankGame
     /// <summary>The build shop's package list while it is open, null while it is shut.</summary>
     public List<ShopRow>? Shop { get; set; }
 
+    /// <summary>The package the game's click menu is open on, null while it is shut.</summary>
+    public long? Menu { get; set; }
+
+    /// <summary>Web icon paths, as the plugin finds them under the WebUI folder; furniture not listed has none.</summary>
+    public Dictionary<int, string> Icons { get; } = new();
+
     public int FreeSpots { get; set; } = 3;
 
     public bool IsAway { get; set; }
@@ -59,9 +65,9 @@ internal sealed class FakeGame : IBankGame
         if (IsAway) return new BankRead.Away();
 
         var contents = BankCounters.Read(Counters);
-        var banked = contents.Entries.Select(entry => new BankedPackage(entry, NameOf(entry.ConfigId), null, SizeOf(entry.ConfigId))).ToList();
+        var banked = contents.Entries.Select(entry => new BankedPackage(entry, NameOf(entry.ConfigId), Icons.GetValueOrDefault(entry.ConfigId), SizeOf(entry.ConfigId))).ToList();
 
-        return new BankRead.Ready(new Bank(Home.ToList(), banked, contents.Bonus, FreeSpots, Shop?.ToList()));
+        return new BankRead.Ready(new Bank(Home.ToList(), banked, contents.Bonus, FreeSpots, Shop?.ToList(), Menu));
     }
 
     public bool Store(HomePackage package, BankEntry entry, int? shopIndex)

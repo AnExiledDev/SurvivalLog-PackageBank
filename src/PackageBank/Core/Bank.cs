@@ -16,9 +16,10 @@ public readonly record struct ShopRow(int Index, int ConfigId, int Paid);
 
 /// <summary>
 /// The bank and the home's packages, read in one go. FreeSpots is how many yard spots are empty. Shop is the build
-/// shop's package list while that shop is open, null otherwise.
+/// shop's package list while that shop is open, null otherwise. Menu is the id of what the game's click menu (Install,
+/// Return) is open on, null while that menu is shut.
 /// </summary>
-public sealed record Bank(IReadOnlyList<HomePackage> Home, IReadOnlyList<BankedPackage> Banked, BankBonus Bonus, int FreeSpots, IReadOnlyList<ShopRow>? Shop);
+public sealed record Bank(IReadOnlyList<HomePackage> Home, IReadOnlyList<BankedPackage> Banked, BankBonus Bonus, int FreeSpots, IReadOnlyList<ShopRow>? Shop, long? Menu = null);
 
 /// <summary>What a read of the game found.</summary>
 public abstract record BankRead

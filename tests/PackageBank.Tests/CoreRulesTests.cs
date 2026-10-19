@@ -154,6 +154,7 @@ public class PageCommandTests
         Assert.Equal(new PageCommand.Store(8589934594L), PageCommand.Parse("slmod|packagebank|store|8589934594"));
         Assert.Equal(new PageCommand.TakeOut(3), PageCommand.Parse("slmod|packagebank|takeout|3"));
         Assert.Equal(new PageCommand.StoreShopRow(2), PageCommand.Parse("slmod|packagebank|bank|2"));
+        Assert.Equal(new PageCommand.StoreMenu(), PageCommand.Parse("slmod|packagebank|menubank"));
     }
 
     [Theory]

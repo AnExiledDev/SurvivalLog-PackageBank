@@ -3,7 +3,7 @@
 // only; nothing here ships.
 var window = this;
 
-var location = { protocol: 'https:' };
+var location = { protocol: 'https:', href: 'https://game.local/WebUI/Root.html?v=2/x' };
 
 var intervals = [];
 
@@ -261,6 +261,51 @@ function hudButton() {
   return pageOf(/CoreUI1/).querySelector('.pb-hud-btn');
 }
 
+// The HUD of the countdown before the disaster: the same tool column, its buttons each in a tooltip wrapper.
+function openPrepHud() {
+  var doc = frame('https://game.local/UI/CoreUI0/CoreUI0.html');
+  var column = doc.body.appendChild(new FakeElement('div'));
+  var wrapper = column.appendChild(new FakeElement('div'));
+
+  column.className = 'vertical-tools';
+  wrapper.className = 'tooltip-wrapper';
+  wrapper.appendChild(new FakeElement('button')).className = 'ui-btn icon-sq interactive-btn';
+
+  return doc;
+}
+
+function prepHudButton() {
+  return pageOf(/CoreUI0/).querySelector('.pb-hud-btn');
+}
+
+// The game's click menu open on a package, one main column of entries, as its script draws them each time it opens.
+function openMenu(texts) {
+  var doc = pageOf(/SelectMenu/) || frame('https://game.local/UI/SelectMenu/SelectMenu.html');
+  var container = doc.getElementById('menu-container') || doc.body.appendChild(new FakeElement('div'));
+  var column = new FakeElement('div');
+
+  container.id = 'menu-container';
+  container.textContent = '';
+  column.className = 'menu-col main';
+  texts.forEach(function (text) {
+    var entry = column.appendChild(new FakeElement('div'));
+
+    entry.className = 'menu-btn show';
+    entry.textContent = text;
+  });
+  container.appendChild(column);
+
+  return doc;
+}
+
+function menuEntries() {
+  return pageOf(/SelectMenu/).querySelectorAll('.menu-btn');
+}
+
+function menuBank() {
+  return pageOf(/SelectMenu/).querySelector('.pb-menu-btn');
+}
+
 // The build shop with its package list, one row per name, each ending in the shop's Refund button.
 function openShop(names) {
   var doc = frame('https://game.local/UI/BuildShop/BuildShop.html');
@@ -299,7 +344,9 @@ function shopPage() {
 }
 
 function pageOf(pattern) {
-  return document.querySelectorAll('iframe').filter(function (node) { return pattern.test(node.src); })[0].contentDocument;
+  var found = document.querySelectorAll('iframe').filter(function (node) { return pattern.test(node.src); })[0];
+
+  return found ? found.contentDocument : null;
 }
 
 function shopRows() {

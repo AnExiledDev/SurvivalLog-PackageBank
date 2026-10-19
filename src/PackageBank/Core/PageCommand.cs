@@ -33,6 +33,9 @@ public abstract record PageCommand
     /// <summary>The page script just installed itself.</summary>
     public sealed record Ready : PageCommand;
 
+    /// <summary>The Bank entry added to the game's click menu on a yard package.</summary>
+    public sealed record StoreMenu : PageCommand;
+
     /// <summary>The page has no script, usually because the web view reloaded.</summary>
     public sealed record NoScript : PageCommand;
 
@@ -54,6 +57,7 @@ public abstract record PageCommand
             ("store", 2) when long.TryParse(parts[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var id) => new Store(id),
             ("takeout", 2) when TryNumber(parts[1], out var slot) => new TakeOut(slot),
             ("bank", 2) when TryNumber(parts[1], out var index) => new StoreShopRow(index),
+            ("menubank", 1) => new StoreMenu(),
             ("ready", 1) => new Ready(),
             ("noscript", 1) => new NoScript(),
             _ => new Unknown(message),

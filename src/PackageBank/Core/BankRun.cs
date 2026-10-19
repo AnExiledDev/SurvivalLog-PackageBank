@@ -31,7 +31,7 @@ public abstract record BankOutcome
     public sealed record Failed : BankOutcome;
 }
 
-/// <summary>The bank's three presses: bank a yard package, bank a build shop row, and take a package out.</summary>
+/// <summary>The bank's presses: bank a yard package (from the panel or the game's click menu), bank a build shop row, and take a package out.</summary>
 public static class BankRun
 {
     public static BankOutcome Store(IBankGame game, BankLimits limits, long packageId)
@@ -39,6 +39,21 @@ public static class BankRun
         return game.Read() switch
         {
             BankRead.Ready ready => StoreFound(game, limits, ready.Bank, ready.Bank.Home.FirstOrDefault(package => package.Id == packageId), shopIndex: null),
+            BankRead.Away => new BankOutcome.NotHome(),
+            _ => new BankOutcome.NoGame(),
+        };
+    }
+
+    /// <summary>
+    /// The menu's package is read at the press, not when the page drew the entry, so a menu reopened on another package
+    /// in between banks the one the player is looking at.
+    /// </summary>
+    public static BankOutcome StoreMenu(IBankGame game, BankLimits limits)
+    {
+        return game.Read() switch
+        {
+            BankRead.Ready { Bank.Menu: { } id } ready => Store(game, limits, id),
+            BankRead.Ready => new BankOutcome.Gone(),
             BankRead.Away => new BankOutcome.NotHome(),
             _ => new BankOutcome.NoGame(),
         };

@@ -6,7 +6,8 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 
 - **Bank button on the HUD:** a box button at the top of the bottom-left tool column opens the bank panel. Press it again or press `Esc` to close the panel. There is no hotkey.
 - **The panel** lists the packages in your yard ("At home") and the packages in the bank ("In the bank"). `Bank` moves a package from the yard into the bank. `Take out` puts a banked package back on a free package spot in the yard.
-- **In the build shop:** every bought package in the shop's package list gets a `Bank` button next to its Refund button, and the banked packages are listed below the shop's list, each with `Take out`. You can move packages in and out of the bank while you shop.
+- **Bank from the yard:** click a package in your yard and its menu (Install, Return) gets a `Bank` entry that moves it straight into the bank.
+- **In the build shop:** every bought package in the shop's package list gets a `Bank` button next to its Refund button, and the banked packages are listed below the shop's list with their icons, each with `Take out`. You can move packages in and out of the bank while you shop.
 - **Size limits:** the bank holds 4 large, 6 medium and 8 small packages by default. Limits can be changed or turned off in the config. Each size shows how many are banked and its limit.
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Buttons say why not:** a greyed-out button shows the reason, such as a full size, a package being moved or installed, or no free package spot.

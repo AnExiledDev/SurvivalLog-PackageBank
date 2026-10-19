@@ -109,6 +109,20 @@ public class PageScriptTests
         Assert.False(page.Is("hudButton()"));
     }
 
+    [Fact]
+    public void In_the_countdown_before_the_disaster_the_HUD_gets_the_same_button_in_that_HUDs_own_markup()
+    {
+        var page = new PageScript();
+        page.Run("openPrepHud()");
+
+        page.Live(true);
+        page.Click("prepHudButton().querySelector('button')");
+
+        Assert.Equal(new PageCommand.Toggle(), Assert.Single(page.Sent));
+        Assert.True(page.Is("prepHudButton().classList.contains('tooltip-wrapper')"));
+        Assert.Equal("Package Bank", page.Text("prepHudButton().querySelector('.tip-name').textContent"));
+    }
+
     // ===== The build shop =====
 
     [Fact]
@@ -199,5 +213,82 @@ public class PageScriptTests
 
         Assert.False(page.Is("shopBank()"));
         Assert.Equal(0, page.Count("shopPage().querySelectorAll('.pb-bank-btn')"));
+    }
+
+    [Fact]
+    public void A_banked_packages_icon_in_the_shop_is_read_from_the_web_folder_not_the_shops_own_folder()
+    {
+        var game = Yard(out _, out _);
+        game.Icons[Table] = "Res/Furniture/table.png";
+        var page = InShop(game);
+
+        Assert.Equal("https://game.local/WebUI/Res/Furniture/table.png", page.Text("shopBank().querySelector('img').src"));
+    }
+
+    // ===== The click menu =====
+
+    /// <summary>The game's click menu open on a yard package, with the bank's view sent and one page check run.</summary>
+    private static PageScript InMenu(FakeGame game, HomePackage package, BankLimits? limits = null)
+    {
+        var page = new PageScript();
+        game.Menu = package.Id;
+
+        page.Run("openMenu(['Install', 'Return'])");
+        page.Shop(ViewOf(game, limits));
+        page.Poll();
+
+        return page;
+    }
+
+    [Fact]
+    public void The_click_menu_on_a_yard_package_gets_a_bank_entry_that_banks_what_the_menu_is_open_on()
+    {
+        var game = Yard(out var bed, out _);
+        var page = InMenu(game, bed);
+
+        page.Click("menuBank()");
+
+        Assert.Equal(3, page.Count("menuEntries()"));
+        Assert.Equal("Bank", page.Text("menuBank().querySelector('.menu-btn-text').textContent"));
+        Assert.Equal(new PageCommand.StoreMenu(), Assert.Single(page.Sent));
+    }
+
+    [Fact]
+    public void A_click_menu_bank_entry_the_bank_would_refuse_is_locked_with_its_reason_and_sends_nothing()
+    {
+        var game = Yard(out var bed, out _);
+        var page = InMenu(game, bed, Defaults with { Large = 0 });
+
+        page.Click("menuBank()");
+
+        Assert.True(page.Is("menuBank().classList.contains('locked')"));
+        Assert.Contains("Bank full for this size", page.Text("menuBank().textContent"));
+        Assert.Empty(page.Sent);
+    }
+
+    [Fact]
+    public void The_click_menu_bank_entry_goes_when_the_menu_is_no_longer_on_a_package()
+    {
+        var game = Yard(out var bed, out _);
+        var page = InMenu(game, bed);
+        game.Menu = null;
+
+        page.Shop(ViewOf(game));
+
+        Assert.False(page.Is("menuBank()"));
+        Assert.Equal(2, page.Count("menuEntries()"));
+    }
+
+    [Fact]
+    public void A_click_menu_the_game_draws_again_gets_its_bank_entry_again()
+    {
+        var game = Yard(out var bed, out _);
+        var page = InMenu(game, bed);
+
+        page.Run("openMenu(['Install', 'Return'])");
+        page.Poll();
+
+        Assert.True(page.Is("menuBank()"));
+        Assert.Equal(3, page.Count("menuEntries()"));
     }
 }

@@ -85,6 +85,9 @@ internal sealed class BankSession
             case PageCommand.StoreShopRow row:
                 Press($"bank shop row {row.Index}", () => BankRun.StoreShopRow(_game, _limits, row.Index));
                 break;
+            case PageCommand.StoreMenu:
+                Press("bank from the click menu", () => BankRun.StoreMenu(_game, _limits));
+                break;
             case PageCommand.TakeOut takeOut:
                 Press($"take out slot {takeOut.Slot}", () => BankRun.TakeOut(_game, takeOut.Slot));
                 break;
@@ -144,10 +147,14 @@ internal sealed class BankSession
         }
     }
 
-    /// <summary>The shop's part of the view goes only while that shop is open; null takes the bank rows away.</summary>
+    /// <summary>
+    /// The view goes to the game's pages only while the build shop or the click menu is open; null takes the bank rows
+    /// and the menu's Bank entry away.
+    /// </summary>
     private void SendShop(string? view)
     {
-        var shop = view != null && !view.Contains("\"shop\":null", StringComparison.Ordinal) ? view : null;
+        var isPageOpen = view != null && (!view.Contains("\"shop\":null", StringComparison.Ordinal) || !view.Contains("\"menu\":null", StringComparison.Ordinal));
+        var shop = isPageOpen ? view : null;
 
         if (_hasSentShop && shop == _shownShop) return;
 

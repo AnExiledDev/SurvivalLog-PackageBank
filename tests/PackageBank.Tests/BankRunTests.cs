@@ -229,4 +229,32 @@ public class BankRunTests
         Assert.IsType<BankOutcome.Gone>(BankRun.StoreShopRow(game, Defaults, 3));
         Assert.Single(game.Home);
     }
+
+    // ===== The click menu =====
+
+    [Fact]
+    public void Bank_in_the_click_menu_banks_the_package_the_menu_is_open_on()
+    {
+        var game = new FakeGame();
+        game.Add(Lamp);
+        var bed = game.Add(Bed);
+        game.Menu = bed.Id;
+
+        var outcome = BankRun.StoreMenu(game, Defaults);
+
+        Assert.Equal(new BankOutcome.Stored("Bed"), outcome);
+        Assert.Equal(Lamp, Assert.Single(game.Home).ConfigId);
+    }
+
+    [Fact]
+    public void Bank_in_a_click_menu_that_has_already_shut_banks_nothing()
+    {
+        var game = new FakeGame();
+        game.Add(Bed);
+
+        var outcome = BankRun.StoreMenu(game, Defaults);
+
+        Assert.Equal(new BankOutcome.Gone(), outcome);
+        Assert.Single(game.Home);
+    }
 }

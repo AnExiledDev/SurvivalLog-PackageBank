@@ -7,6 +7,7 @@ Your yard only has so many package spots. Package Bank gives you somewhere to pu
 [size=5]Main features[/size]
 [list]
 [*][b]Bank panel[/b]: a box button at the top of the bottom-left tool column opens a panel with the packages in your yard and the packages in the bank. [b]Bank[/b] moves a package into the bank, [b]Take out[/b] puts it back on a free package spot.[/*]
+[*][b]Bank from the yard[/b]: click a package in your yard and its menu gets a [b]Bank[/b] entry beside Install and Return.[/*]
 [*][b]Bank from the build shop[/b]: every bought package in the shop's package list gets a [b]Bank[/b] button next to its Refund button.[/*]
 [*][b]Banked packages in the shop[/b]: the bank is listed below the shop's package list, each package with [b]Take out[/b].[/*]
 [*][b]Size limits[/b]: the bank holds 4 large, 6 medium and 8 small packages by default. Change the limits or turn them off in the config.[/*]
@@ -70,6 +71,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 
 [size=5]主要功能[/size]
 [list]
+[*][b]在院子里存入[/b]：点击院子里的包裹，弹出的菜单中会多出[b]存入[/b]选项。[/*]
 [*][b]仓库面板[/b]：左下角工具栏顶部的箱子按钮打开面板，列出院子里的包裹和仓库中的包裹。[b]存入[/b]把包裹放进仓库，[b]取出[/b]把它放回空的包裹位。[/*]
 [*][b]在建造商店存入[/b]：商店包裹列表中每个已购买的包裹旁，退货按钮边上多了一个[b]存入[/b]按钮。[/*]
 [*][b]商店里显示仓库[/b]：仓库中的包裹列在商店包裹列表下方，每个都有[b]取出[/b]按钮。[/*]
