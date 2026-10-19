@@ -257,7 +257,10 @@ internal sealed class GameBank : IBankGame
         return role == null ? null : AgentTools.GetAgentComponent<BuildComponent>(role);
     }
 
-    /// <summary>Null on the title screen, while a save loads and in the prologue.</summary>
+    /// <summary>
+    /// Null on the title screen and while a save loads. The countdown before the disaster counts: that is when each loop
+    /// opens with shopping, so the bank must work there too.
+    /// </summary>
     private static (BattleLogicWorld World, ConfigManager Config, AgentManager Agents, LeadingRole Role)? LoadedGame()
     {
         var world = GameSingleton.Existing<BattleLogicWorld>();
@@ -265,7 +268,7 @@ internal sealed class GameBank : IBankGame
         var agents = world?._AgentManager;
         var role = agents?.GetLeadingRole();
 
-        if (world == null || config == null || agents == null || role == null || world._GameTimeManager?.WorldStateType != WorldStateType.PostDisaster) return null;
+        if (world == null || config == null || agents == null || role == null) return null;
 
         return (world, config, agents, role);
     }
