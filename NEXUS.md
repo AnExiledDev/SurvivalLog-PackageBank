@@ -1,5 +1,5 @@
 Name: Package Bank
-Summary: Store furniture packages from your yard in a bank and take them out again when you need them. A HUD button opens the bank, and the build shop gets a Bank button on every bought package plus the banked packages below its list, so you can shuffle packages while you shop. Holds 4 large, 6 medium and 8 small packages by default, and story items without limit. 把院子里的家具包裹存进仓库，需要时再取出。HUD 按钮打开仓库，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹，购物时可以随时调整。默认可存 4 个大型、6 个中型和 8 个小型包裹，剧情物品不限数量。
+Summary: Store furniture packages from your yard in a bank and take them out again when you need them. A HUD button opens the bank, clicking a yard package adds Bank to its menu, and the build shop gets a Bank button on every bought package plus the banked packages below its list, so you can shuffle packages while you shop. Holds 4 large, 6 medium and 8 small packages by default, and story items without limit. 把院子里的家具包裹存进仓库，需要时再取出。HUD 按钮打开仓库，点击院子里的包裹时菜单中会多出「存入」，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹，购物时可以随时调整。默认可存 4 个大型、6 个中型和 8 个小型包裹，剧情物品不限数量。
 
 Description (BBCode):
 Your yard only has so many package spots. Package Bank gives you somewhere to put packages you are not ready to install, and lets you move them in and out while you shop.
@@ -120,6 +120,8 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\package-bank.log[/font]。
+想直接联系我，可以在 Discord 上给 [b]exiled.dev[/b] 发消息，我在 [url=https://discord.gg/MZGg4gQAUe]Survival Log 官方 Discord[/url] 里。也可以在 X 上找我：[url=https://x.com/AnExiledDev]@AnExiledDev[/url]。
+即将推出：Survival Log 维基，收录我所有模组的详细说明。
 
 [size=5]源代码与许可[/size]
 基于 MIT 许可开源：[url=https://github.com/AnExiledDev/SurvivalLog-PackageBank]github.com/AnExiledDev/SurvivalLog-PackageBank[/url]

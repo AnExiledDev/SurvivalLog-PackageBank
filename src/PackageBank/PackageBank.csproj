@@ -40,7 +40,7 @@
   <!-- What the Mod Manager's Mods screen shows about this mod. -->
   <ItemGroup>
     <AssemblyMetadata Include="ModManager.Name" Value="Package Bank&#10;包裹仓库" />
-    <AssemblyMetadata Include="ModManager.Description" Value="Store furniture packages for later and take them out again. A HUD button opens the bank, and the build shop gets a Bank button on every bought package plus the banked packages below its list. The bank holds 4 large, 6 medium and 8 small packages by default, and story items without limit.&#10;把家具包裹存起来，需要时再取出。HUD 按钮打开仓库，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹。仓库默认可存 4 个大型、6 个中型和 8 个小型包裹，剧情物品不限数量。" />
+    <AssemblyMetadata Include="ModManager.Description" Value="Store furniture packages for later and take them out again. A HUD button opens the bank, clicking a yard package adds Bank to its menu, and the build shop gets a Bank button on every bought package plus the banked packages below its list. The bank holds 4 large, 6 medium and 8 small packages by default, and story items without limit.&#10;把家具包裹存起来，需要时再取出。HUD 按钮打开仓库，点击院子里的包裹时菜单中会多出「存入」，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹。仓库默认可存 4 个大型、6 个中型和 8 个小型包裹，剧情物品不限数量。" />
     <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
     <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
     <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.18902" />
