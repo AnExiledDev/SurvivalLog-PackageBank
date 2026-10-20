@@ -20,6 +20,8 @@ Works in English and Chinese.
 - **To refund a banked package, take it out first**, then use the shop's own Refund button.
 - **Looted packages stay non-refundable** after a trip through the bank.
 - A package being moved or installed cannot be banked. Car and door boxes cannot be banked.
+- On an expedition the panel and the HUD button are hidden.
+- Banked packages are not in the yard, so the preparation checklist in the countdown before the disaster does not count them.
 - The bank is kept in your save file.
 
 ## Requirements

@@ -32,6 +32,7 @@ Works in English and Chinese.
 [*]Looted packages stay non-refundable after a trip through the bank.[/*]
 [*]A package being moved or installed cannot be banked. Car and door boxes cannot be banked.[/*]
 [*]On an expedition the panel and the HUD button are hidden.[/*]
+[*]Banked packages are not in the yard, so the preparation checklist in the countdown before the disaster does not count them.[/*]
 [/list]
 
 [size=5]Requirements[/size]
@@ -95,6 +96,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [*]搜刮来的包裹进出仓库后仍然不能退款。[/*]
 [*]正在搬运或安装的包裹不能存入。车上和门口的箱子不能存入。[/*]
 [*]外出探索时，面板和 HUD 按钮会隐藏。[/*]
+[*]仓库中的包裹不在院子里，灾前倒计时中的准备清单不会把它们计算在内。[/*]
 [/list]
 
 [size=5]前置要求[/size]

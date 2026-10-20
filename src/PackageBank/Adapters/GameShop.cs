@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GameCore.HotUpdate;
+using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
 using Il2CppInterop.Runtime;
 using PackageBank.Core;
@@ -125,11 +126,33 @@ internal sealed class GameShop
         return sameFurniture;
     }
 
-    /// <summary>The shop's package count and its count for the furniture's slot.</summary>
+    /// <summary>
+    /// The shop's package count and how many it may hold, worked out as the shop does when it opens. A looted package
+    /// banked or taken out changes the free yard spots too, and so how many more packages can be bought.
+    /// </summary>
+    public void Recount(BuildComponent build)
+    {
+        try
+        {
+            var shop = OpenShop();
+
+            if (shop == null) return;
+
+            var bought = build.GetPurchaseCount();
+
+            shop.Value.State.PackageCapacity.Value = bought;
+            shop.Value.State.PackageMaxCapacity.Value = Math.Min(build.GetMaxCapacity(), bought + build.GetFreePackagePointCount());
+            shop.Value.Redux.TriggerStateSubscribe(shop.Value.State, true);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("shop recount", ex);
+        }
+    }
+
+    /// <summary>The shop's count for the furniture's slot, never below zero, as the shop's own Refund keeps it.</summary>
     private static void Shift(State_Web_BuildShop state, int? slotType, int by)
     {
-        state.PackageCapacity.Value += by;
-
         if (slotType is not { } type || state.Slots == null) return;
 
         for (var i = 0; i < state.Slots.Count; i++)
@@ -138,7 +161,7 @@ internal sealed class GameShop
 
             if (slot == null || slot.SlotTypeId != type) continue;
 
-            slot.Current.Value += by;
+            slot.Current.Value = Math.Max(0, slot.Current.Value + by);
 
             return;
         }

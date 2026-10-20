@@ -46,8 +46,9 @@ internal sealed class GameBank : IBankGame
     }
 
     /// <summary>
-    /// The entry is written before the package leaves the yard, and taken back out if the removal throws, so a failure
-    /// cannot lose the package. A bought package also leaves the build shop's list when that shop is open.
+    /// The entry is written before the package leaves the yard. If the removal throws, the entry is taken back out only
+    /// while the package is still in the yard, so a failure can neither lose the package nor leave it in both places. A
+    /// bought package also leaves the build shop's list when that shop is open.
     /// </summary>
     public bool Store(HomePackage package, BankEntry entry, int? shopIndex)
     {
@@ -66,10 +67,16 @@ internal sealed class GameBank : IBankGame
         }
         catch (Exception ex)
         {
-            ClearEntry(counters, entry.Slot);
             ReportOnce("store", ex);
 
-            return false;
+            if (build.PackagePointMap.ContainsKey(package.Id))
+            {
+                ClearEntry(counters, entry.Slot);
+
+                return false;
+            }
+
+            _log($"{package.Name} left the yard before the error, so it stays banked");
         }
 
         _log($"banked {package.Name} (furniture {package.ConfigId}, package {package.Id}) into slot {entry.Slot}");
@@ -77,12 +84,15 @@ internal sealed class GameBank : IBankGame
 
         if (package.IsPurchased) _shop.Banked(shopIndex, package.ConfigId, package.Paid, SlotTypeOf(package.ConfigId));
 
+        _shop.Recount(build);
+
         return true;
     }
 
     /// <summary>
-    /// Puts the package on the free yard spot nearest the player, as the build shop's Buy does, gives back its color
-    /// and its shop record (so the shop's Refund still pays the same), then clears its entry.
+    /// Puts the package on the free yard spot nearest the player, as the build shop's Buy does, and clears its entry the
+    /// moment it is in the yard, so a later error cannot let a second press make a copy. Then gives back its shop
+    /// record (so the shop's Refund still pays the same) and its color.
     /// </summary>
     public long TakeOut(BankEntry entry)
     {
@@ -106,16 +116,16 @@ internal sealed class GameBank : IBankGame
 
             if (id == 0) return 0;
 
-            if (entry.IsPurchased) build.AddPurchased(id, entry.Source, entry.Paid);
-
-            var bag = agents.GetAgent(id)?.TryCast<BagFurniture>();
-
-            if (bag != null) bag.DyeSlot = entry.Dye;
-
             ClearEntry(counters, entry.Slot);
             _log($"took slot {entry.Slot} (furniture {entry.ConfigId}) out as package {id}");
 
+            if (entry.IsPurchased) Softly("give back the shop record", () => build.AddPurchased(id, entry.Source, entry.Paid));
+
+            Softly("give back the color", () => Dye(agents, id, entry.Dye));
+
             if (entry.IsPurchased) _shop.TakenOut(entry.ConfigId, entry.Paid, NameOf(config, entry.ConfigId), config.Get_Config_Furniture(entry.ConfigId));
+
+            _shop.Recount(build);
 
             return id;
         }
@@ -125,6 +135,20 @@ internal sealed class GameBank : IBankGame
 
             return 0;
         }
+    }
+
+    private void Dye(AgentManager agents, long id, int dye)
+    {
+        var bag = agents.GetAgent(id)?.TryCast<BagFurniture>();
+
+        if (bag == null)
+        {
+            _log($"package {id} was not found to give back its color");
+
+            return;
+        }
+
+        bag.DyeSlot = dye;
     }
 
     private BankRead ReadBank()
