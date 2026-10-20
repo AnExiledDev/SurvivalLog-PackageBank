@@ -7,7 +7,7 @@ namespace PackageBank.Tests;
 /// <summary>page.js fed the real core's view the way the plugin feeds it: the panel, the HUD button and the shop's bank.</summary>
 public class PageScriptTests
 {
-    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8);
+    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
 
     private static string ViewOf(FakeGame game, BankLimits? limits = null) => BankView.Of(game.Read(), limits ?? Defaults) ?? throw new InvalidOperationException("no view");
 
@@ -107,6 +107,18 @@ public class PageScriptTests
         page.Live(false);
 
         Assert.False(page.Is("hudButton()"));
+    }
+
+    [Fact]
+    public void The_HUD_button_carries_its_place_for_the_toolkits_four_high_layout_in_both_HUDs()
+    {
+        var page = new PageScript();
+        page.Run("openHud(); openPrepHud()");
+
+        page.Live(true);
+
+        Assert.Equal("20", page.Text("hudButton().getAttribute('data-etk-dock')"));
+        Assert.Equal("20", page.Text("prepHudButton().getAttribute('data-etk-dock')"));
     }
 
     [Fact]
@@ -277,6 +289,25 @@ public class PageScriptTests
 
         Assert.False(page.Is("menuBank()"));
         Assert.Equal(2, page.Count("menuEntries()"));
+    }
+
+    [Fact]
+    public void A_click_menu_drawn_after_the_view_arrived_gets_its_bank_entry_last_without_waiting_for_the_page_check()
+    {
+        var game = Yard(out var bed, out _);
+        var page = new PageScript();
+        page.Run("openMenu(['Install', 'Return'])");
+        page.Poll();
+        page.Run("pageOf(/SelectMenu/).getElementById('menu-container').textContent = ''");
+        game.Menu = bed.Id;
+        page.Shop(ViewOf(game));
+
+        Assert.False(page.Is("menuBank()"));
+
+        page.Run("openMenu(['Install', 'Return']); settle()");
+
+        Assert.True(page.Is("menuBank()"));
+        Assert.Equal("Bank", page.Text("menuEntries()[2].querySelector('.menu-btn-text').textContent"));
     }
 
     [Fact]

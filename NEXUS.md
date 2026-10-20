@@ -1,5 +1,5 @@
 Name: Package Bank
-Summary: Store furniture packages from your yard in a bank and take them out again when you need them. A HUD button opens the bank, clicking a yard package adds Bank to its menu, and the build shop gets a Bank button on every bought package plus the banked packages below its list, so you can shuffle packages while you shop. Holds 4 large, 6 medium and 8 small packages by default, and story items without limit. 把院子里的家具包裹存进仓库，需要时再取出。HUD 按钮打开仓库，点击院子里的包裹时菜单中会多出「存入」，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹，购物时可以随时调整。默认可存 4 个大型、6 个中型和 8 个小型包裹，剧情物品不限数量。
+Summary: Store furniture packages from your yard in a bank and take them out again when you need them. A HUD button opens the bank, clicking a yard package adds Bank to its menu, and the build shop gets a Bank button on every bought package plus the banked packages below its list, so you can shuffle packages while you shop. Holds 4 large, 6 medium and 8 small packages and 4 defenses by default, and story items without limit. 把院子里的家具包裹存进仓库，需要时再取出。HUD 按钮打开仓库，点击院子里的包裹时菜单中会多出「存入」，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹，购物时可以随时调整。默认可存 4 个大型、6 个中型和 8 个小型包裹以及 4 个防御设施，剧情物品不限数量。
 
 Description (BBCode):
 Your yard only has so many package spots. Package Bank gives you somewhere to put packages you are not ready to install, and lets you move them in and out while you shop.
@@ -12,6 +12,7 @@ Your yard only has so many package spots. Package Bank gives you somewhere to pu
 [*][b]Banked packages in the shop[/b]: the bank is listed below the shop's package list, each package with [b]Take out[/b].[/*]
 [*][b]Size limits[/b]: the bank holds 4 large, 6 medium and 8 small packages by default. Change the limits or turn them off in the config.[/*]
 [*][b]Story Items[/b]: free one-off packages, such as the Recorder from the hospital, go on their own shelf with no limit.[/*]
+[*][b]Defenses[/b]: sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own, 4 by default.[/*]
 [*][b]Buttons say why not[/b]: a greyed-out button shows the reason, like a full size or no free package spot.[/*]
 [/list]
 
@@ -78,6 +79,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [*][b]商店里显示仓库[/b]：仓库中的包裹列在商店包裹列表下方，每个都有[b]取出[/b]按钮。[/*]
 [*][b]尺寸上限[/b]：仓库默认可存 4 个大型、6 个中型和 8 个小型包裹。可在配置中修改或关闭上限。[/*]
 [*][b]剧情物品[/b]：免费的一次性包裹（例如医院里的记录仪）放在单独的一栏，不限数量。[/*]
+[*][b]防御设施[/b]：沙包、尖刺障碍等防御设施包裹放在单独的一栏，默认 4 个。[/*]
 [*][b]按钮会说明原因[/b]：变灰的按钮会显示原因，例如该尺寸已满或没有空的包裹位。[/*]
 [/list]
 

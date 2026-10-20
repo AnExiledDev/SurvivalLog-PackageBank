@@ -4,28 +4,35 @@ using System.Linq;
 
 namespace PackageBank.Core;
 
-/// <summary>The bank's shelves. Story items are one-time packages from the story; they have a shelf of their own with no limit.</summary>
+/// <summary>
+/// The bank's shelves. Story items are one-time packages from the story; they have a shelf of their own with no limit.
+/// Defenses (sandbags, spikes and the like) have their own shelf too.
+/// </summary>
 public enum PackageSize
 {
     Small,
     Medium,
     Large,
     Story,
+    Defense,
 }
 
 public static class PackageSizes
 {
-    /// <summary>The slot type of the home's outdoor defenses (traps and barricades): never banked.</summary>
+    /// <summary>The slot type of the home's outdoor defenses (sandbags, spikes, the electric net and the chainsaw).</summary>
     public const int DefenseSlotType = 10;
 
     private const string HomeSpotPrefix = "HomePackage";
 
-    public static readonly IReadOnlyList<PackageSize> All = new[] { PackageSize.Large, PackageSize.Medium, PackageSize.Small, PackageSize.Story };
+    public static readonly IReadOnlyList<PackageSize> All = new[] { PackageSize.Large, PackageSize.Medium, PackageSize.Small, PackageSize.Defense, PackageSize.Story };
 
-    /// <summary>The shelf a package goes on, from its furniture's slot type; null when it cannot be banked at all.</summary>
+    /// <summary>
+    /// The shelf a package goes on, from its furniture's slot type; null when it cannot be banked at all. Defenses are
+    /// all free, so they would pass for story items; they go on their own shelf first.
+    /// </summary>
     public static PackageSize? Of(int slotType, bool isStory)
     {
-        if (slotType == DefenseSlotType) return null;
+        if (slotType == DefenseSlotType) return PackageSize.Defense;
         if (isStory) return PackageSize.Story;
 
         return slotType switch
@@ -44,6 +51,7 @@ public static class PackageSizes
         PackageSize.Medium => "medium",
         PackageSize.Large => "large",
         PackageSize.Story => "story",
+        PackageSize.Defense => "defense",
         _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
     };
 

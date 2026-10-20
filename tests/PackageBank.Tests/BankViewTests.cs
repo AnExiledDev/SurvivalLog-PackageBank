@@ -8,7 +8,7 @@ namespace PackageBank.Tests;
 /// <summary>What the panel and the shop are told to draw: which buttons are greyed and why.</summary>
 public class BankViewTests
 {
-    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8);
+    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
 
     private static JsonElement View(FakeGame game, BankLimits? limits = null) =>
         JsonDocument.Parse(BankView.Of(game.Read(), limits ?? Defaults) ?? throw new InvalidOperationException("no view")).RootElement;
@@ -38,7 +38,7 @@ public class BankViewTests
     [Fact]
     public void With_limits_off_no_size_shows_a_limit()
     {
-        var view = View(new FakeGame(), new BankLimits(IsLimited: false, Large: 4, Medium: 6, Small: 8));
+        var view = View(new FakeGame(), new BankLimits(IsLimited: false, Large: 4, Medium: 6, Small: 8, Defense: 4));
 
         Assert.All(view.GetProperty("sizes").EnumerateArray(), size => Assert.Equal(JsonValueKind.Null, size.GetProperty("cap").ValueKind));
     }

@@ -35,6 +35,7 @@ public static class Texts
     public static readonly Phrase Medium = new("medium", "中型");
     public static readonly Phrase Small = new("small", "小型");
     public static readonly Phrase Story = new("story", "剧情");
+    public static readonly Phrase Defense = new("defense", "防御设施");
 
     /// <summary>The words page.js draws the panel, the HUD button's tip and the shop's bank rows with, by the key it looks them up by.</summary>
     public static readonly IReadOnlyList<(string Key, Phrase Phrase)> Page = new (string, Phrase)[]
@@ -49,6 +50,7 @@ public static class Texts
         ("medium", new("Medium", "中型")),
         ("small", new("Small", "小型")),
         ("story", new("Story Items", "剧情物品")),
+        ("defense", new("Defenses", "防御设施")),
         ("used", new("{0}: {1}/{2}", "{0}：{1}/{2}")),
         ("usedFree", new("{0}: {1}", "{0}：{1}")),
         ("spots", new("Free package spots: {0}", "空的包裹位置：{0}")),
@@ -69,12 +71,13 @@ public static class Texts
         PackageSize.Large => Large,
         PackageSize.Medium => Medium,
         PackageSize.Small => Small,
+        PackageSize.Defense => Defense,
         _ => Story,
     };
 
     private static List<Phrase> Collect()
     {
-        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, Failed, Large, Medium, Small, Story };
+        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, Failed, Large, Medium, Small, Story, Defense };
 
         all.AddRange(Page.Select(word => word.Phrase));
 

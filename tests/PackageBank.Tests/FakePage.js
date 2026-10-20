@@ -381,3 +381,46 @@ function click(target) {
     (node.listeners.click || []).slice().forEach(function (listener) { listener(event); });
   }
 }
+
+// ===== Watching for changes =====
+
+// A browser tells a MutationObserver about changes after the script that made them has finished, all at once; here
+// that moment is settle(). Only changes inside the watched node count.
+var watchers = [];
+
+var MutationObserver = class {
+  constructor(callback) { this.callback = callback; }
+
+  observe(target) { watchers.push({ target: target, callback: this.callback, isPending: false }); }
+};
+
+function noteChange(node) {
+  watchers.forEach(function (watcher) {
+    if (watcher.target === node || watcher.target.contains(node)) watcher.isPending = true;
+  });
+}
+
+function settle() {
+  for (var round = 0; round < 10; round++) {
+    var due = watchers.filter(function (watcher) { return watcher.isPending; });
+
+    if (due.length === 0) return;
+
+    due.forEach(function (watcher) {
+      watcher.isPending = false;
+      watcher.callback([]);
+    });
+  }
+}
+
+['appendChild', 'insertBefore', 'replaceChild', 'removeChild'].forEach(function (name) {
+  var change = FakeElement.prototype[name];
+
+  FakeElement.prototype[name] = function () {
+    var result = change.apply(this, arguments);
+
+    noteChange(this);
+
+    return result;
+  };
+});

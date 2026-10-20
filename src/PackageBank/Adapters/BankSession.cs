@@ -16,7 +16,7 @@ internal sealed class BankSession
     private readonly IBankGame _game;
     private readonly WebPage _page;
     private readonly Action<string> _log;
-    private BankLimits _limits = new(IsLimited: true, Large: 4, Medium: 6, Small: 8);
+    private BankLimits _limits = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
 
     private string? _shownView;
     private string? _shownShop;
@@ -24,6 +24,8 @@ internal sealed class BankSession
     private float _nextRefreshAt;
     private bool? _sentLive;
     private bool _isOpen;
+    private long? _menuOpenOn;
+    private bool _hasReportedMenuReadFailure;
 
     public BankSession(IBankGame game, WebPage page, Action<string> log)
     {
@@ -53,7 +55,35 @@ internal sealed class BankSession
             return;
         }
 
-        if (now >= _nextRefreshAt) Refresh();
+        if (now >= _nextRefreshAt || HasMenuChanged()) Refresh();
+    }
+
+    /// <summary>
+    /// The click menu's Bank entry must be there as soon as the menu opens, or a quick click lands on Destroy, so the
+    /// menu is checked every frame and a change refreshes at once instead of at the next once-a-second refresh.
+    /// </summary>
+    private bool HasMenuChanged()
+    {
+        long? openOn;
+
+        try
+        {
+            openOn = GameMenu.OpenOn();
+        }
+        catch (Exception ex)
+        {
+            if (!_hasReportedMenuReadFailure) _log("reading the click menu failed (reported once): " + ex);
+
+            _hasReportedMenuReadFailure = true;
+
+            return false;
+        }
+
+        if (openOn == _menuOpenOn) return false;
+
+        _menuOpenOn = openOn;
+
+        return true;
     }
 
     /// <summary>One command that throws must not cost the rest of the frame its commands.</summary>

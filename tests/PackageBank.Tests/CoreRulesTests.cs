@@ -81,9 +81,10 @@ public class PackageSizesTests
     }
 
     [Fact]
-    public void Outdoor_defenses_are_never_banked_even_when_story_items()
+    public void Defenses_go_on_the_defense_shelf_even_though_they_are_free_like_story_items()
     {
-        Assert.Null(PackageSizes.Of(PackageSizes.DefenseSlotType, isStory: true));
+        Assert.Equal(PackageSize.Defense, PackageSizes.Of(PackageSizes.DefenseSlotType, isStory: true));
+        Assert.Equal(PackageSize.Defense, PackageSizes.Of(PackageSizes.DefenseSlotType, isStory: false));
     }
 
     [Fact]

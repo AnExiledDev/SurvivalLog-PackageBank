@@ -6,7 +6,7 @@ namespace PackageBank.Tests;
 
 public class BankRunTests
 {
-    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8);
+    private static readonly BankLimits Defaults = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
 
     private static Bank BankOf(FakeGame game) => Assert.IsType<BankRead.Ready>(game.Read()).Bank;
 
@@ -82,7 +82,7 @@ public class BankRunTests
     public void With_limits_off_a_size_takes_any_number()
     {
         var game = new FakeGame();
-        var limits = new BankLimits(IsLimited: false, Large: 0, Medium: 0, Small: 0);
+        var limits = new BankLimits(IsLimited: false, Large: 0, Medium: 0, Small: 0, Defense: 0);
 
         BankRun.Store(game, limits, game.Add(Bed).Id);
 
@@ -105,11 +105,25 @@ public class BankRunTests
     public void Story_items_have_no_limit_even_with_every_size_set_to_zero()
     {
         var game = new FakeGame();
-        var limits = new BankLimits(IsLimited: true, Large: 0, Medium: 0, Small: 0);
+        var limits = new BankLimits(IsLimited: true, Large: 0, Medium: 0, Small: 0, Defense: 0);
 
         BankRun.Store(game, limits, game.Add(Recorder, isPurchased: false).Id);
 
         Assert.IsType<BankOutcome.Stored>(BankRun.Store(game, limits, game.Add(Recorder, isPurchased: false).Id));
+    }
+
+    [Fact]
+    public void The_free_starter_sandbags_can_be_banked_and_count_against_the_defense_limit()
+    {
+        var game = new FakeGame();
+        var limits = new BankLimits(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 1);
+
+        var first = BankRun.Store(game, limits, game.Add(Sandbags, isPurchased: false).Id);
+        var second = BankRun.Store(game, limits, game.Add(Sandbags, isPurchased: false).Id);
+
+        Assert.Equal(new BankOutcome.Stored("Sandbags"), first);
+        Assert.Equal(new BankOutcome.Full(PackageSize.Defense, 1), second);
+        Assert.IsType<BankOutcome.Stored>(BankRun.Store(game, limits, game.Add(Bed).Id));
     }
 
     [Fact]

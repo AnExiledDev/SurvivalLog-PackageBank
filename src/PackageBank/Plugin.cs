@@ -13,7 +13,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.1.0";
+    private const string Version = "0.2.0";
     private const int MaxSlots = 100;
 
     public override void Load()
@@ -21,8 +21,8 @@ public sealed class Plugin : BasePlugin
         if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
 
         var limitBySize = Config.Bind("Bank", "LimitBySize", true,
-            "Limit how many packages of each size the bank holds, set by LargeSlots, MediumSlots and SmallSlots. Set to false for no limit. Story items never have a limit.\n" +
-            "限制仓库中每种尺寸的包裹数量，由 LargeSlots、MediumSlots 和 SmallSlots 设置。设为 false 则不限数量。剧情物品始终不限数量。");
+            "Limit how many packages of each size the bank holds, set by LargeSlots, MediumSlots, SmallSlots and DefenseSlots. Set to false for no limit. Story items never have a limit.\n" +
+            "限制仓库中每种尺寸的包裹数量，由 LargeSlots、MediumSlots、SmallSlots 和 DefenseSlots 设置。设为 false 则不限数量。剧情物品始终不限数量。");
         var largeSlots = Config.Bind("Bank", "LargeSlots", 4, new ConfigDescription(
             "How many large packages the bank holds while LimitBySize is on. 4 by default, from 0 to 100.\n" +
             "LimitBySize 开启时仓库可存放的大型包裹数量。默认 4，可设为 0 到 100。",
@@ -35,6 +35,10 @@ public sealed class Plugin : BasePlugin
             "How many small packages the bank holds while LimitBySize is on. 8 by default, from 0 to 100.\n" +
             "LimitBySize 开启时仓库可存放的小型包裹数量。默认 8，可设为 0 到 100。",
             new AcceptableValueRange<int>(0, MaxSlots)));
+        var defenseSlots = Config.Bind("Bank", "DefenseSlots", 4, new ConfigDescription(
+            "How many defense packages (sandbags, spike barriers and other defenses) the bank holds while LimitBySize is on. 4 by default, from 0 to 100.\n" +
+            "LimitBySize 开启时仓库可存放的防御设施包裹（沙包、尖刺障碍等）数量。默认 4，可设为 0 到 100。",
+            new AcceptableValueRange<int>(0, MaxSlots)));
         var log = new BankLog(Log, Path.Combine(Paths.BepInExRootPath, "package-bank.log"));
         var harmony = new Harmony(Guid);
         var session = new BankSession(new GameBank(new GameShop(log.Write), log.Write), new WebPage(log.Write), log.Write);
@@ -45,11 +49,11 @@ public sealed class Plugin : BasePlugin
 
         OptionalLive.Watch(() =>
         {
-            var limits = new BankLimits(limitBySize.Value, largeSlots.Value, mediumSlots.Value, smallSlots.Value);
+            var limits = new BankLimits(limitBySize.Value, largeSlots.Value, mediumSlots.Value, smallSlots.Value, defenseSlots.Value);
 
             session.UseLimits(limits);
-            log.Write(limits.IsLimited ? $"limits: {limits.Large} large, {limits.Medium} medium, {limits.Small} small" : "limits off");
-        }, limitBySize, largeSlots, mediumSlots, smallSlots);
+            log.Write(limits.IsLimited ? $"limits: {limits.Large} large, {limits.Medium} medium, {limits.Small} small, {limits.Defense} defense" : "limits off");
+        }, limitBySize, largeSlots, mediumSlots, smallSlots, defenseSlots);
 
         BankTicker.Session = session;
         BankTicker.Log = log.Write;

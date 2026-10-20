@@ -10,5 +10,6 @@ Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created t
 | `LargeSlots` | `4` | How many large packages the bank holds. Any number from 0 to 100. |
 | `MediumSlots` | `6` | How many medium packages the bank holds. Any number from 0 to 100. |
 | `SmallSlots` | `8` | How many small packages the bank holds. Any number from 0 to 100. |
+| `DefenseSlots` | `4` | How many defense packages (sandbags, spike barriers and other defenses) the bank holds. Any number from 0 to 100. |
 
 Story Items have no limit. Lowering a limit below what is already banked keeps those packages in the bank; nothing more of that size goes in until the count drops below the limit.

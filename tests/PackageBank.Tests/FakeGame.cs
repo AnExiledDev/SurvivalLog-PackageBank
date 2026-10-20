@@ -39,6 +39,7 @@ internal sealed class FakeGame : IBankGame
         [Table] = PackageSize.Medium,
         [Lamp] = PackageSize.Small,
         [Recorder] = PackageSize.Story,
+        [Sandbags] = PackageSize.Defense,
     };
 
     public const int Bed = 30;
@@ -46,6 +47,7 @@ internal sealed class FakeGame : IBankGame
     public const int Lamp = 10;
     public const int Recorder = 90;
     public const int Barricade = 50;
+    public const int Sandbags = 36001;
 
     /// <summary>The shop the packages in these tests were bought from.</summary>
     public const long ShopId = 0x1_0000_0002L;
@@ -105,6 +107,7 @@ internal sealed class FakeGame : IBankGame
         Lamp => "Lamp",
         Recorder => "Recorder",
         Barricade => "Barricade",
+        Sandbags => "Sandbags",
         _ => "Package " + configId,
     };
 }

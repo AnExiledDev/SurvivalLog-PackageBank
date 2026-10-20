@@ -27,7 +27,7 @@ public readonly record struct BankBonus(int Large, int Medium, int Small)
 }
 
 /// <summary>The size limits from the settings. Story items never have one, and nothing does when limits are off.</summary>
-public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small)
+public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small, int Defense)
 {
     /// <summary>How many packages of a size the bank holds, or null for no limit.</summary>
     public int? Capacity(PackageSize size, BankBonus bonus)
@@ -39,6 +39,7 @@ public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small
             PackageSize.Large => Large,
             PackageSize.Medium => Medium,
             PackageSize.Small => Small,
+            PackageSize.Defense => Defense,
             _ => null,
         };
 

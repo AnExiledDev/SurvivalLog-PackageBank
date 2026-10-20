@@ -8,6 +8,8 @@
 
   var PREFIX = 'slmod|packagebank|';
   var HUD_CLASS = 'pb-hud-btn';
+  // The bank's place in the HUD's tool column when Exiled's Toolkit lays it out in columns of four.
+  var DOCK_ORDER = '20';
   var MENU_CLASS = 'pb-menu-btn';
   var SHOP_STYLE_ID = 'pb-shop-style';
   var SHOP_BANK_ID = 'pb-shop-bank';
@@ -21,7 +23,7 @@
   var ENGLISH = {
     title: 'Package Bank', tip: 'Store packages for later and take them out again', atHome: 'At home ({0})',
     inBank: 'In the bank ({0})', bank: 'Bank', takeOut: 'Take out', large: 'Large', medium: 'Medium', small: 'Small',
-    story: 'Story Items', used: '{0}: {1}/{2}', usedFree: '{0}: {1}', spots: 'Free package spots: {0}',
+    story: 'Story Items', defense: 'Defenses', used: '{0}: {1}/{2}', usedFree: '{0}: {1}', spots: 'Free package spots: {0}',
     noRefund: 'Not refundable', busy: 'Being moved or installed', notBankable: "Can't be banked",
     full: 'Bank full for this size', noSpot: 'No free package spot', emptyHome: 'No packages in the yard.',
     emptyBank: 'The bank is empty.', escClose: 'Esc to close'
@@ -449,7 +451,10 @@
     if (existing && existing.parentNode === column) return;
     if (existing) existing.remove();
 
-    column.insertBefore(build(doc), column.firstChild);
+    var node = build(doc);
+
+    node.setAttribute('data-etk-dock', DOCK_ORDER);
+    column.insertBefore(node, column.firstChild);
 
     if (!hasReportedHudPlaced) send('diag|HUD button placed in the tool column');
     hasReportedHudPlaced = true;
@@ -495,6 +500,8 @@
   // the reason in the menu's own hover tip when the bank would refuse it. The press names no package: the plugin banks
   // whatever the menu is open on at that moment.
   function patchMenu(doc) {
+    watchMenu(doc);
+
     var why = state.menu ? state.menu.why || '' : null;
     var container = doc.getElementById('menu-container');
     var existing = doc.querySelector('.' + MENU_CLASS);
@@ -510,6 +517,19 @@
     if (existing) existing.remove();
 
     (container.querySelector('.menu-col') || container).appendChild(menuEntry(doc, why));
+  }
+
+  // The menu draws its entries a moment after it opens; adding the Bank entry the moment they appear, rather than at
+  // the next poll, keeps it from showing up late, after the player has already moved to click.
+  function watchMenu(doc) {
+    if (doc.pbMenuWatched || !doc.body || typeof MutationObserver === 'undefined') return;
+
+    doc.pbMenuWatched = true;
+    new MutationObserver(function () {
+      try {
+        patchMenu(doc);
+      } catch (e) {}
+    }).observe(doc.body, { childList: true, subtree: true });
   }
 
   function menuEntry(doc, why) {
