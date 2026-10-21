@@ -1,5 +1,5 @@
 Name: Package Bank
-Summary: Store furniture packages from your yard in a bank and take them out again when you need them. A HUD button opens the bank, clicking a yard package adds Bank to its menu, and the build shop gets a Bank button on every bought package plus the banked packages below its list, so you can shuffle packages while you shop. Holds 4 large, 6 medium and 8 small packages and 4 defenses by default, and story items without limit. 把院子里的家具包裹存进仓库，需要时再取出。HUD 按钮打开仓库，点击院子里的包裹时菜单中会多出「存入」，建造商店里每个已购买的包裹旁都有「存入」按钮，列表下方还会显示仓库中的包裹，购物时可以随时调整。默认可存 4 个大型、6 个中型和 8 个小型包裹以及 4 个防御设施，剧情物品不限数量。
+Summary: Store furniture packages from your yard in a bank and take them out when you need them. Bank them from the yard, from a HUD panel or right in the build shop, where banked packages are listed below the shop's list so you can shuffle packages while you shop. Size limits, a shelf for defenses and a free shelf for story items, all configurable.
 
 Description (BBCode):
 Your yard only has so many package spots. Package Bank gives you somewhere to put packages you are not ready to install, and lets you move them in and out while you shop.
