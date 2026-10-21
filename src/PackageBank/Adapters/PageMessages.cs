@@ -29,7 +29,7 @@ internal static class PageMessages
         }
         catch (Exception ex)
         {
-            log("could not listen for panel messages, the HUD button and the bank buttons will do nothing: " + ex.Message);
+            log("could not hook panel messages, the HUD button and the bank buttons will do nothing: " + ex.Message);
         }
     }
 

@@ -1,0 +1,4 @@
+# Game versions each version of Package Bank is known to work on.
+# mod version = game versions, separated by commas
+0.1.0 = 1.1.18902, 1.1.19131
+0.2.0 = 1.1.19131
