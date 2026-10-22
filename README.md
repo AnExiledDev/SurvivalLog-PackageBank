@@ -34,7 +34,7 @@ Works in English and Chinese.
 ## Install
 
 1. Install BepInEx. If no other mods were installed before, start the game once so BepInEx finishes setup, then quit.
-2. Extract the release zip into the game folder (the folder with `SurvivalLog.exe`), merging the folders. `PackageBank.dll` ends up in `BepInEx\plugins\`.
+2. Download `PackageBank-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-PackageBank/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/79), and extract it into the game folder (the folder with `SurvivalLog.exe`), merging the folders. `PackageBank.dll` ends up in `BepInEx\plugins\`.
 
 ## Uninstall
 
