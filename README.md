@@ -5,13 +5,14 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 ## What it does
 
 - **Bank button on the HUD:** a box button at the top of the bottom-left tool column opens the bank panel. Press it again or press `Esc` to close the panel. There is no hotkey.
-- **The panel** lists the packages in your yard ("At home") and the packages in the bank ("In the bank"). `Bank` moves a package from the yard into the bank. `Take out` puts a banked package back on a free package spot in the yard.
+- **The panel** lists the packages in your yard ("In the yard") and the packages in the bank ("In the bank"), each grouped by shelf. `Bank` moves a package from the yard into the bank. `Take out` puts a banked package back on a free package spot in the yard; the number of free spots shows beside the bank's heading.
+- **Shelf cards:** a card for each shelf along the top shows how many packages are banked on it against its limit, and turns red when the shelf is full. Click a card to show only that shelf in both lists; click it again, or `Show all` at the bottom, to show everything.
 - **Bank from the yard:** click a package in your yard and its menu (Install, Return) gets a `Bank` entry that moves it straight into the bank.
 - **In the build shop:** every bought package in the shop's package list gets a `Bank` button next to its Refund button, and the banked packages are listed below the shop's list with their icons, each with `Take out`. You can move packages in and out of the bank while you shop.
-- **Size limits:** the bank holds 4 large, 6 medium and 8 small packages, and 4 defenses (sandbags, spike barriers and the like), by default. Limits can be changed or turned off in the config. Each size shows how many are banked and its limit.
+- **Size limits:** the bank holds 4 large, 6 medium and 8 small packages, and 4 defenses (sandbags, spike barriers and the like), by default. Limits can be changed or turned off in the config. Each shelf card shows how many are banked and its limit.
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Defenses:** sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own.
-- **Buttons say why not:** a greyed-out button shows the reason, such as a full size, a package being moved or installed, or no free package spot.
+- **Buttons say why not:** a greyed-out button shows the reason. A full shelf says `bank full` once on its group in the yard list, no free package spot shows one notice at the top of the bank list, and a package being moved or installed says so under its name.
 
 Works in English and Chinese.
 
@@ -46,7 +47,7 @@ See [CONFIG.md](CONFIG.md).
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.2.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.3.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

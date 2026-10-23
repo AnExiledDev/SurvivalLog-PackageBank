@@ -37,6 +37,10 @@ public class PageScriptTests
 
     // ===== The panel =====
 
+    private const string Panel = "document.getElementById('pb-root').textContent";
+    private const string YardList = "document.querySelectorAll('.pb-list')[0]";
+    private const string BankList = "document.querySelectorAll('.pb-list')[1]";
+
     [Fact]
     public void The_panel_lists_the_yard_and_the_bank_and_a_bank_press_names_the_package()
     {
@@ -48,21 +52,175 @@ public class PageScriptTests
 
         Assert.Equal(new PageCommand.Store(bed.Id), Assert.Single(page.Sent));
         Assert.True(page.Is("panelButton('takeout', 0)"));
-        Assert.Contains("Large: 0/4", page.Text("document.getElementById('pb-root').textContent"));
-        Assert.Contains("Medium: 1/6", page.Text("document.getElementById('pb-root').textContent"));
+        Assert.Contains("Table", page.Text($"{BankList}.textContent"));
+        Assert.Contains("2 in the yard, 1 in the bank", page.Text(Panel));
     }
 
     [Fact]
-    public void A_refused_package_is_greyed_with_its_reason_and_sends_nothing()
+    public void Each_shelf_card_shows_what_is_banked_on_it_against_its_limit_with_a_pip_per_place()
+    {
+        var page = new PageScript();
+
+        page.Open(ViewOf(Yard(out _, out _)));
+
+        Assert.Equal("Medium1 / 6", page.Text("panelButton('filter', 'medium').textContent"));
+        Assert.Equal(6, page.Count("panelButton('filter', 'medium').querySelectorAll('.pb-pip')"));
+        Assert.Equal(1, page.Count("panelButton('filter', 'medium').querySelectorAll('.pb-fill')"));
+        Assert.Equal("Story Items0No limit", page.Text("panelButton('filter', 'story').textContent"));
+    }
+
+    [Fact]
+    public void A_shelf_with_a_big_limit_draws_one_bar_instead_of_a_pip_per_place()
+    {
+        var page = new PageScript();
+
+        page.Open(ViewOf(Yard(out _, out _), Defaults with { Medium = 40 }));
+
+        Assert.Equal(2, page.Count("panelButton('filter', 'medium').querySelectorAll('.pb-pip')"));
+        Assert.Equal("1", page.Text("panelButton('filter', 'medium').querySelector('.pb-fill').style.flex"));
+    }
+
+    [Fact]
+    public void With_limits_off_no_shelf_has_a_limit()
+    {
+        var page = new PageScript();
+
+        page.Open(ViewOf(Yard(out _, out _), Defaults with { IsLimited = false }));
+
+        Assert.Equal(5, page.Count("document.querySelectorAll('.pb-nolimit')"));
+        Assert.Equal(0, page.Count("document.querySelectorAll('.pb-pip')"));
+    }
+
+    [Fact]
+    public void Both_lists_are_grouped_by_shelf_in_the_shelf_cards_order()
+    {
+        var game = Yard(out _, out _);
+        game.Add(Sandbags);
+        game.Add(Bed);
+        var page = new PageScript();
+
+        page.Open(ViewOf(game));
+
+        Assert.Equal("Large|Small|Defenses", page.Text($"{YardList}.querySelectorAll('.pb-grp').map(function (g) {{ return g.textContent; }}).join('|')"));
+        Assert.Equal(2, page.Count($"{YardList}.querySelectorAll('.pb-row').filter(function (r) {{ return r.querySelector('.pb-name').textContent === 'Bed'; }})"));
+        Assert.Equal("Bed", page.Text($"{YardList}.querySelectorAll('.pb-row')[1].querySelector('.pb-name').textContent"));
+    }
+
+    [Fact]
+    public void A_full_shelf_greys_its_yard_packages_says_so_once_on_the_group_and_sends_nothing()
     {
         var game = Yard(out var bed, out _);
+        game.Add(Bed);
         var page = new PageScript();
 
         page.Open(ViewOf(game, Defaults with { Large = 0 }));
         page.Click($"panelButton('store', '{bed.Id}')");
 
         Assert.Empty(page.Sent);
-        Assert.Contains("Bank full for this size", page.Text("document.getElementById('pb-root').textContent"));
+        Assert.True(page.Is($"panelButton('store', '{bed.Id}').disabled"));
+        Assert.Equal("Largebank full", page.Text($"{YardList}.querySelector('.pb-grp').textContent"));
+        Assert.Equal(1, page.Count("document.querySelectorAll('.pb-grp-why')"));
+        Assert.Equal(0, page.Count("document.querySelectorAll('.pb-why')"));
+        Assert.True(page.Is("panelButton('filter', 'large').classList.contains('pb-full')"));
+    }
+
+    [Fact]
+    public void A_package_refused_for_a_reason_of_its_own_says_why_under_its_name()
+    {
+        var game = Yard(out _, out _);
+        var busy = game.Add(Lamp, isBusy: true);
+        var page = new PageScript();
+
+        page.Open(ViewOf(game));
+        page.Click($"panelButton('store', '{busy.Id}')");
+
+        Assert.Empty(page.Sent);
+        Assert.Equal("Being moved or installed", page.Text("document.querySelector('.pb-why').textContent"));
+        Assert.Equal(1, page.Count("document.querySelectorAll('.pb-why')"));
+    }
+
+    [Fact]
+    public void With_no_free_spot_the_bank_list_says_so_once_and_every_take_out_is_greyed()
+    {
+        var game = Yard(out _, out _);
+        BankRun.Store(game, Defaults, game.Add(Table).Id);
+        game.FreeSpots = 0;
+        var page = new PageScript();
+
+        page.Open(ViewOf(game));
+        page.Click("panelButton('takeout', 0)");
+        page.Click("panelButton('takeout', 1)");
+
+        Assert.Empty(page.Sent);
+        Assert.Equal(1, page.Count($"{BankList}.querySelectorAll('.pb-notice')"));
+        Assert.Contains("Install, refund or bank a package to take one out.", page.Text($"{BankList}.textContent"));
+        Assert.True(page.Is("panelButton('takeout', 1).disabled"));
+        Assert.Contains("0 free package spots in the yard", page.Text(Panel));
+        Assert.True(page.Is("document.querySelector('.pb-spots').classList.contains('pb-bad')"));
+    }
+
+    [Fact]
+    public void One_free_spot_is_counted_in_the_singular()
+    {
+        var game = Yard(out _, out _);
+        game.FreeSpots = 1;
+        var page = new PageScript();
+
+        page.Open(ViewOf(game));
+
+        Assert.Equal("1 free package spot in the yard", page.Text("document.querySelector('.pb-spots').textContent"));
+    }
+
+    [Fact]
+    public void A_shelf_card_press_shows_only_that_shelf_in_both_lists_and_a_second_press_shows_all_again()
+    {
+        var page = new PageScript();
+        page.Open(ViewOf(Yard(out _, out _)));
+
+        page.Click("panelButton('filter', 'large')");
+
+        Assert.Empty(page.Sent);
+        Assert.Contains("Bed", page.Text($"{YardList}.textContent"));
+        Assert.DoesNotContain("Lamp", page.Text($"{YardList}.textContent"));
+        Assert.Equal("Nothing from the Large shelf here.", page.Text($"{BankList}.textContent"));
+        Assert.Contains("Showing Large only", page.Text(Panel));
+        Assert.True(page.Is("panelButton('filter', 'large').classList.contains('pb-on')"));
+
+        page.Click("panelButton('filter', 'large')");
+
+        Assert.Contains("Lamp", page.Text($"{YardList}.textContent"));
+        Assert.Contains("Table", page.Text($"{BankList}.textContent"));
+        Assert.False(page.Is("panelButton('showall')"));
+    }
+
+    [Fact]
+    public void Show_all_clears_the_shelf_filter_and_a_new_bank_view_keeps_it()
+    {
+        var game = Yard(out var bed, out _);
+        var page = new PageScript();
+        page.Open(ViewOf(game));
+        page.Click("panelButton('filter', 'small')");
+
+        page.Run($"window.__slpkgbank.setData({ViewOf(game)})");
+
+        Assert.DoesNotContain("Bed", page.Text($"{YardList}.textContent"));
+
+        page.Click("panelButton('showall')");
+
+        Assert.Contains("Bed", page.Text($"{YardList}.textContent"));
+        Assert.Empty(page.Sent);
+    }
+
+    [Fact]
+    public void Empty_lists_say_what_to_do_next()
+    {
+        var page = new PageScript();
+
+        page.Open(ViewOf(new FakeGame()));
+
+        Assert.Contains("Packages you buy in the build shop land here.", page.Text($"{YardList}.textContent"));
+        Assert.Contains("Press Bank on a package in the yard to store it here.", page.Text($"{BankList}.textContent"));
+        Assert.Equal(0, page.Count("document.querySelectorAll('.pb-notice')"));
     }
 
     [Fact]
@@ -88,7 +246,9 @@ public class PageScriptTests
         page.Run(PageWords.Script(isChinese: true));
         page.Open(ViewOf(new FakeGame()));
 
-        Assert.Contains("院子里没有包裹。", page.Text("document.getElementById('pb-root').textContent"));
+        Assert.Contains("院子里没有包裹。", page.Text(Panel));
+        Assert.Contains("院子里 0 个，仓库中 0 个", page.Text(Panel));
+        Assert.Contains("无上限", page.Text(Panel));
     }
 
     // ===== The HUD button =====

@@ -13,7 +13,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.2.0";
+    private const string Version = "0.3.0";
     private const int MaxSlots = 100;
 
     public override void Load()

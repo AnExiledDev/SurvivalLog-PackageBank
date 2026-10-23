@@ -21,15 +21,27 @@
   var BOX_PATH = 'M3 3h18v5H3V3zm2 2v1h14V5H5zM4 9h16v12H4V9zm2 2v8h12v-8H6zm3 1h6v2H9v-2z';
   // The plugin hands over the words in the game's language before every call (Texts.cs); English stands in until then.
   var ENGLISH = {
-    title: 'Package Bank', tip: 'Store packages for later and take them out again', atHome: 'At home ({0})',
-    inBank: 'In the bank ({0})', bank: 'Bank', takeOut: 'Take out', large: 'Large', medium: 'Medium', small: 'Small',
-    story: 'Story Items', defense: 'Defenses', used: '{0}: {1}/{2}', usedFree: '{0}: {1}', spots: 'Free package spots: {0}',
+    title: 'Package Bank', tip: 'Store packages for later and take them out again', counts: '{0} in the yard, {1} in the bank',
+    inYard: 'In the yard', inBankTitle: 'In the bank', inBank: 'In the bank ({0})', bank: 'Bank', takeOut: 'Take out',
+    large: 'Large', medium: 'Medium', small: 'Small', story: 'Story Items', defense: 'Defenses', noLimit: 'No limit',
+    spotsFree: '{0} free package spots in the yard', spotFree: '1 free package spot in the yard',
     noRefund: 'Not refundable', busy: 'Being moved or installed', notBankable: "Can't be banked",
-    full: 'Bank full for this size', noSpot: 'No free package spot', emptyHome: 'No packages in the yard.',
-    emptyBank: 'The bank is empty.', escClose: 'Esc to close'
+    full: 'Bank full for this size', shelfFull: 'bank full', noSpot: 'No free package spot',
+    noSpotNote: 'No free package spot in the yard. Install, refund or bank a package to take one out.',
+    emptyHome: 'No packages in the yard.', emptyHomeHint: 'Packages you buy in the build shop land here.',
+    emptyBank: 'The bank is empty.', emptyBankHint: 'Press Bank on a package in the yard to store it here.',
+    emptyShelf: 'Nothing from the {0} shelf here.', showing: 'Showing {0} only', showAll: 'Show all',
+    escClose: 'Esc to close'
   };
+  // Arrows for Bank and Take out, and the warning sign of the no-spot notice, on the same 24-unit grid.
+  var ARROW_IN_PATH = 'M4 11h11.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H4z';
+  var ARROW_OUT_PATH = 'M20 11H8.8l4.6-4.6L12 5l-7 7 7 7 1.4-1.4L8.8 13H20z';
+  var WARN_PATH = 'M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z';
+  // A shelf with more places than this draws one bar instead of a pip per place.
+  var PIP_LIMIT = 12;
 
-  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null };
+  // filter: the shelf key both lists are narrowed to, or null for all of them.
+  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null, filter: null };
   var ui = null;
   var toastTimer = 0;
   var isBusy = false;
@@ -97,40 +109,72 @@
     return node;
   }
 
+  // The warm gold look the newer mod panels share: a brown plate with a gold hairline, gold section heads and quiet
+  // gold-outline buttons.
   var CSS = [
-    '#pb-root{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#eee;user-select:none}',
+    '#pb-root{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;background:rgba(10,6,2,.45);font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#f0e8d8;user-select:none}',
     '#pb-root *{box-sizing:border-box}',
-    '.pb-plate{width:min(1040px,92vw);height:min(800px,86vh);display:flex;flex-direction:column;gap:12px;padding:18px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(30,30,33,.92),rgba(18,18,20,.94));box-shadow:0 10px 40px rgba(0,0,0,.6)}',
-    '.pb-head{display:flex;align-items:center;gap:14px}',
-    '.pb-title{font-size:18px;font-weight:600;letter-spacing:1px;text-shadow:0 2px 6px rgba(0,0,0,.6)}',
-    '.pb-sizes{flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}',
-    '.pb-chip{padding:3px 9px;border-radius:7px;background:rgba(10,10,12,.72);border:1px solid rgba(255,255,255,.14);white-space:nowrap}',
-    '.pb-chip.pb-at-cap{border-color:rgba(229,57,53,.7);color:#ff8a80}',
-    '.pb-spots{font-size:13px;color:rgba(238,238,238,.7);white-space:nowrap}',
-    '.pb-btn.pb-x{width:30px;height:30px;padding:0;font-size:18px;line-height:28px}',
-    '.pb-cols{flex:1;min-height:0;display:flex;gap:12px}',
-    '.pb-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}',
-    '.pb-col-title{font-size:14px;font-weight:600;color:#EBA308}',
-    '.pb-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:6px;background:rgba(10,10,12,.72);border:1px solid rgba(255,255,255,.14);border-radius:8px}',
-    '.pb-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:7px;background:rgba(255,255,255,.04)}',
-    '.pb-row:hover{background:rgba(255,255,255,.06)}',
-    '.pb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}',
-    '.pb-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.pb-tags{display:flex;gap:6px;flex-wrap:wrap}',
-    '.pb-badge{font-size:11px;padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.1);color:rgba(238,238,238,.8)}',
-    '.pb-badge-story{background:rgba(124,179,66,.24);color:#aed581}',
-    '.pb-badge-looted{background:rgba(255,193,7,.18);color:#EBA308}',
-    '.pb-acts{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:180px}',
-    '.pb-why{font-size:12px;color:rgba(238,238,238,.55);text-align:right}',
-    '.pb-icon{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,.05);overflow:hidden;color:rgba(238,238,238,.7);font-weight:600;font-size:17px}',
+    '.pb-plate{position:relative;width:min(1180px,94vw);height:min(800px,88vh);display:flex;flex-direction:column;gap:16px;padding:22px 24px 16px;border-radius:4px;border:1px solid rgba(220,188,120,.28);background:radial-gradient(ellipse at 15% 0%,rgba(150,100,40,.30),transparent 55%),linear-gradient(180deg,#3a3129 0%,#2b241d 55%,#241e18 100%);box-shadow:0 30px 90px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,230,180,.08)}',
+    '.pb-plate::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 10%,#FFC83A 50%,transparent 90%);opacity:.6}',
+    '.pb-head{display:flex;align-items:center;gap:16px}',
+    '.pb-logo{width:44px;height:44px;flex:none;border-radius:4px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#ffd25a,#e8a91c);box-shadow:0 0 14px rgba(255,200,58,.25)}',
+    '.pb-logo svg{width:26px;height:26px;fill:#3a2a10}',
+    '.pb-title{flex:1;min-width:0;font-size:26px;letter-spacing:6px;text-transform:uppercase;color:#fff;line-height:1.1}',
+    '.pb-sub{font-size:13px;letter-spacing:.5px;text-transform:none;color:#a89a82;margin-top:3px}',
+    '.pb-x{width:34px;height:34px;flex:none;padding:0;border-radius:4px;border:1px solid rgba(220,188,120,.20);background:rgba(255,240,210,.05);color:#cbbfa8;font:inherit;font-size:20px;line-height:32px;cursor:pointer}',
+    '.pb-x:hover{border-color:#FFC83A;color:#fff}',
+    '.pb-shelves{display:flex;gap:10px}',
+    '.pb-shelf{flex:1;min-width:0;padding:9px 12px 10px;border-radius:4px;border:1px solid rgba(220,188,120,.11);background:rgba(70,58,44,.55);cursor:pointer;display:flex;flex-direction:column;gap:7px}',
+    '.pb-shelf:hover{border-color:rgba(255,200,58,.45)}',
+    '.pb-shelf.pb-on{border-color:#FFC83A;background:rgba(255,200,58,.12);box-shadow:0 0 12px rgba(255,200,58,.15)}',
+    '.pb-shelf-top{display:flex;align-items:baseline;gap:8px}',
+    '.pb-shelf-name{flex:1;min-width:0;font-size:13px;color:#cbbfa8;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.pb-count{font-size:15px;font-weight:700;color:#FFC83A}',
+    '.pb-cap{font-weight:400;color:#7a6e5a}',
+    '.pb-shelf.pb-full .pb-count{color:#ff9d86}',
+    '.pb-pips{display:flex;gap:3px;height:6px}',
+    '.pb-pip{flex:1;border-radius:2px;background:rgba(255,240,210,.09)}',
+    '.pb-pip.pb-fill{background:#FFC83A;box-shadow:0 0 6px rgba(255,200,58,.3)}',
+    '.pb-shelf.pb-full .pb-pip.pb-fill{background:#e0674f;box-shadow:none}',
+    '.pb-nolimit{font-size:12px;color:#7a6e5a;height:6px;line-height:6px}',
+    '.pb-cols{flex:1;min-height:0;display:flex;gap:16px}',
+    '.pb-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}',
+    '.pb-sect{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#FFC83A;text-shadow:0 0 12px rgba(255,200,58,.35);padding:2px 2px 0}',
+    '.pb-sect::before{content:"";width:4px;height:16px;background:#FFC83A;box-shadow:0 0 8px rgba(255,200,58,.35)}',
+    '.pb-sect-n{color:#fff;text-shadow:none}',
+    '.pb-spots{margin-left:auto;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:#a89a82;text-shadow:none}',
+    '.pb-spots.pb-bad{color:#ff9d86}',
+    '.pb-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:4px;border:1px solid rgba(220,188,120,.20);background:linear-gradient(180deg,rgba(58,48,38,.75),rgba(44,36,28,.75))}',
+    '.pb-list::-webkit-scrollbar{width:6px}',
+    '.pb-list::-webkit-scrollbar-thumb{background:rgba(255,200,58,.35);border-radius:3px}',
+    '.pb-grp{flex:none;display:flex;align-items:center;gap:8px;padding:6px 4px 1px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#a89a82}',
+    '.pb-grp::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(220,188,120,.20),transparent)}',
+    '.pb-grp-why{order:2;letter-spacing:0;text-transform:none;color:#ff9d86}',
+    '.pb-grp:first-child{padding-top:0}',
+    '.pb-row{flex:none;display:flex;align-items:center;gap:12px;padding:5px 10px 5px 6px;border-radius:4px;background:rgba(70,58,44,.55);border:1px solid rgba(220,188,120,.11)}',
+    '.pb-row:hover{background:rgba(84,70,52,.7);border-color:rgba(255,200,58,.3)}',
+    '.pb-icon{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(20,14,8,.45);border:1px solid rgba(220,188,120,.11);overflow:hidden;color:#cbbfa8;font-weight:600;font-size:17px}',
     '.pb-icon img{width:100%;height:100%;object-fit:contain}',
-    '.pb-empty{padding:20px;color:rgba(238,238,238,.55);font-size:14px;text-align:center}',
-    '.pb-btn{font:inherit;font-size:13px;color:#dde2f0;padding:6px 11px;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(58,58,60,.9),rgba(38,38,40,.92));cursor:pointer;white-space:nowrap}',
-    '.pb-btn:hover:not(:disabled){background:linear-gradient(180deg,rgba(72,66,48,.92),rgba(50,46,32,.95));border-color:rgba(255,193,7,.75)}',
-    '.pb-btn:disabled{opacity:.4;cursor:default}',
-    '.pb-foot{display:flex;font-size:13px;color:rgba(238,238,238,.7)}',
-    '.pb-status{flex:1}',
-    '#pb-toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:2147483001;pointer-events:none;display:none;max-width:640px;text-align:center;padding:10px 18px;border-radius:8px;border:1px solid rgba(255,193,7,.75);background:linear-gradient(180deg,rgba(30,30,33,.94),rgba(18,18,20,.96));color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}'
+    '.pb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}',
+    '.pb-name{font-size:15px;font-weight:600;color:#f0e8d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.pb-meta{display:flex;gap:8px;align-items:center;font-size:12px;color:#7a6e5a}',
+    '.pb-why{color:#a89a82}',
+    '.pb-tag{padding:1px 6px;border-radius:3px;background:rgba(255,200,58,.12);color:#e9c46a}',
+    '.pb-row.pb-off .pb-icon{opacity:.55}',
+    '.pb-row.pb-off .pb-name{color:#a89a82}',
+    '.pb-btn{flex:none;font:inherit;font-size:13px;font-weight:600;min-width:92px;padding:7px 14px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:rgba(255,200,58,.1);color:#FFC83A;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center;justify-content:center}',
+    '.pb-btn svg{width:14px;height:14px;fill:currentColor}',
+    '.pb-btn:hover:not(:disabled){background:rgba(255,200,58,.2);border-color:#FFC83A}',
+    '.pb-btn:disabled{color:#7a6e5a;border-color:rgba(220,188,120,.11);background:rgba(255,240,210,.03);cursor:default}',
+    '.pb-notice{flex:none;display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:4px;border:1px solid rgba(224,103,79,.45);background:rgba(150,52,30,.18);font-size:13px;color:#f3c9b8}',
+    '.pb-notice svg{width:18px;height:18px;fill:#ff9d86;flex:none}',
+    '.pb-empty{margin:auto;text-align:center;color:#a89a82;font-size:14px;line-height:1.6;padding:30px}',
+    '.pb-empty-head{color:#cbbfa8;font-size:16px;margin-bottom:4px}',
+    '.pb-foot{display:flex;align-items:center;gap:14px;font-size:13px;color:#a89a82;border-top:1px solid rgba(220,188,120,.11);padding-top:11px}',
+    '.pb-status{flex:1;min-width:0;color:#cbbfa8}',
+    '.pb-filter{color:#cbbfa8}',
+    '.pb-show-all{color:#FFC83A;cursor:pointer;text-decoration:underline;margin-left:8px}',
+    '#pb-toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:2147483001;pointer-events:none;display:none;max-width:640px;text-align:center;padding:10px 18px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:linear-gradient(180deg,#3a3129,#241e18);color:#f0e8d8;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}'
   ].join('\n');
 
   function build() {
@@ -142,34 +186,34 @@
     root.id = 'pb-root';
     var plate = el('div', 'pb-plate');
     var head = el('div', 'pb-head');
-    var sizes = el('div', 'pb-sizes');
-    var spots = el('div', 'pb-spots');
-    head.appendChild(el('div', 'pb-title', say('title')));
-    head.appendChild(sizes);
-    head.appendChild(spots);
-    head.appendChild(button(document, '\u00d7', 'close', null, true, 'pb-btn pb-x'));
+    var logo = el('div', 'pb-logo');
+    var title = el('div', 'pb-title');
+    var titleText = el('div', null, say('title'));
+    var sub = el('div', 'pb-sub');
+    logo.appendChild(svgIcon(document, null, BOX_PATH));
+    title.appendChild(titleText);
+    title.appendChild(sub);
+    head.appendChild(logo);
+    head.appendChild(title);
+    head.appendChild(button(document, '\u00d7', 'close', null, true, 'pb-x'));
 
+    var shelves = el('div', 'pb-shelves');
     var cols = el('div', 'pb-cols');
-    var homeCol = el('div', 'pb-col');
-    var bankCol = el('div', 'pb-col');
-    var homeTitle = el('div', 'pb-col-title');
-    var bankTitle = el('div', 'pb-col-title');
-    var homeList = el('div', 'pb-list');
-    var bankList = el('div', 'pb-list');
-    homeCol.appendChild(homeTitle);
-    homeCol.appendChild(homeList);
-    bankCol.appendChild(bankTitle);
-    bankCol.appendChild(bankList);
-    cols.appendChild(homeCol);
-    cols.appendChild(bankCol);
+    var yard = column(cols);
+    var bank = column(cols);
+    var spots = el('span', 'pb-spots');
+    bank.head.appendChild(spots);
 
     var foot = el('div', 'pb-foot');
     var status = el('div', 'pb-status');
+    var filter = el('div', 'pb-filter');
     var keys = el('div');
     foot.appendChild(status);
+    foot.appendChild(filter);
     foot.appendChild(keys);
 
     plate.appendChild(head);
+    plate.appendChild(shelves);
     plate.appendChild(cols);
     plate.appendChild(foot);
     root.appendChild(plate);
@@ -186,9 +230,26 @@
     root.addEventListener('error', swapBrokenIcon, true);
 
     ui = {
-      root: root, title: plate.querySelector('.pb-title'), sizes: sizes, spots: spots, homeTitle: homeTitle,
-      bankTitle: bankTitle, homeList: homeList, bankList: bankList, status: status, keys: keys, toast: toast
+      root: root, title: titleText, sub: sub, shelves: shelves, spots: spots, homeTitle: yard.title, homeCount: yard.count,
+      bankTitle: bank.title, bankCount: bank.count, homeList: yard.list, bankList: bank.list, status: status,
+      filter: filter, keys: keys, toast: toast
     };
+  }
+
+  // A column's gold heading (its title and count) over its list.
+  function column(cols) {
+    var col = el('div', 'pb-col');
+    var head = el('div', 'pb-sect');
+    var title = el('span');
+    var count = el('span', 'pb-sect-n');
+    var list = el('div', 'pb-list');
+    head.appendChild(title);
+    head.appendChild(count);
+    col.appendChild(head);
+    col.appendChild(list);
+    cols.appendChild(col);
+
+    return { head: head, title: title, count: count, list: list };
   }
 
   // A broken icon path swaps to the first-letter placeholder; error events do not bubble, so this listens in capture.
@@ -219,6 +280,14 @@
 
     var act = target.getAttribute('data-act');
     var args = target.getAttribute('data-args');
+
+    // The shelf filter lives in the page alone; the plugin never hears of it.
+    if (act === 'filter' || act === 'showall') {
+      state.filter = act === 'filter' && state.filter !== args ? args : null;
+      render();
+
+      return;
+    }
 
     // Closing the panel gets no status line back, so it must not hold the buttons busy.
     if (act === 'close') {
@@ -257,74 +326,195 @@
   function render() {
     var data = state.data;
 
+    if (state.filter && !sizeOf(state.filter)) state.filter = null;
+
     ui.title.textContent = say('title');
-    renderSizes(data);
-    ui.spots.textContent = say('spots', data.spots);
-    ui.homeTitle.textContent = say('atHome', data.home.length);
-    ui.bankTitle.textContent = say('inBank', data.bank.length);
-    renderList(ui.homeList, data.home, homeRow, 'emptyHome');
-    renderList(ui.bankList, data.bank, bankRow, 'emptyBank');
+    ui.sub.textContent = say('counts', data.home.length, data.bank.length);
+    renderShelves(data);
+    ui.homeTitle.textContent = say('inYard');
+    ui.homeCount.textContent = String(data.home.length);
+    ui.bankTitle.textContent = say('inBankTitle');
+    ui.bankCount.textContent = String(data.bank.length);
+    ui.spots.textContent = data.spots === 1 ? say('spotFree') : say('spotsFree', data.spots);
+    ui.spots.className = 'pb-spots' + (data.spots > 0 ? '' : ' pb-bad');
+    renderList(ui.homeList, data.home, homeRow, homeNote, null, 'emptyHome', 'emptyHomeHint');
+    renderList(ui.bankList, data.bank, bankRow, null, bankNotice(data), 'emptyBank', 'emptyBankHint');
+    renderFilter();
     ui.keys.textContent = say('escClose');
   }
 
-  // Story items and every size with limits off show a plain count; a limited size shows used against its limit.
-  function renderSizes(data) {
-    ui.sizes.textContent = '';
+  function sizeOf(key) {
+    return state.data.sizes.filter(function (size) { return size.key === key; })[0] || null;
+  }
+
+  function isFull(size) {
+    return size != null && size.cap != null && size.used >= size.cap;
+  }
+
+  // One card per shelf with a pip for each banked package. A press shows only that shelf in both lists; a second
+  // press shows everything again.
+  function renderShelves(data) {
+    ui.shelves.textContent = '';
 
     data.sizes.forEach(function (size) {
-      var isCapped = size.cap != null;
-      var text = isCapped ? say('used', say(size.key), size.used, size.cap) : say('usedFree', say(size.key), size.used);
+      var card = el('div', 'pb-shelf' + (state.filter === size.key ? ' pb-on' : '') + (isFull(size) ? ' pb-full' : ''));
+      var top = el('div', 'pb-shelf-top');
+      var count = el('span', 'pb-count', String(size.used));
+      card.setAttribute('data-act', 'filter');
+      card.setAttribute('data-args', size.key);
+      top.appendChild(el('span', 'pb-shelf-name', say(size.key)));
 
-      ui.sizes.appendChild(el('div', 'pb-chip' + (isCapped && size.used >= size.cap ? ' pb-at-cap' : ''), text));
+      if (size.cap != null) count.appendChild(el('span', 'pb-cap', ' / ' + size.cap));
+
+      top.appendChild(count);
+      card.appendChild(top);
+      card.appendChild(meter(size));
+      ui.shelves.appendChild(card);
     });
   }
 
-  function renderList(list, items, row, emptyKey) {
+  function meter(size) {
+    if (size.cap == null) return el('div', 'pb-nolimit', say('noLimit'));
+
+    var pips = el('div', 'pb-pips');
+
+    if (size.cap > PIP_LIMIT) {
+      pips.appendChild(pip(true, size.used));
+      pips.appendChild(pip(false, Math.max(size.cap - size.used, 0)));
+
+      return pips;
+    }
+
+    for (var i = 0; i < size.cap; i++) pips.appendChild(pip(i < size.used, 1));
+
+    return pips;
+  }
+
+  function pip(isFilled, flex) {
+    var node = el('span', 'pb-pip' + (isFilled ? ' pb-fill' : ''));
+    node.style.flex = String(flex);
+
+    return node;
+  }
+
+  function renderFilter() {
+    ui.filter.textContent = '';
+
+    if (!state.filter) return;
+
+    var all = el('span', 'pb-show-all', say('showAll'));
+    all.setAttribute('data-act', 'showall');
+    ui.filter.appendChild(el('span', null, say('showing', say(state.filter))));
+    ui.filter.appendChild(all);
+  }
+
+  // Both lists are grouped by shelf, in the shelf cards' order, so no row needs its own size badge.
+  function renderList(list, items, row, groupNote, notice, emptyKey, hintKey) {
     var scroll = list.scrollTop;
     list.textContent = '';
 
     if (items.length === 0) {
-      list.appendChild(el('div', 'pb-empty', say(emptyKey)));
+      list.appendChild(empty(say(emptyKey), say(hintKey)));
 
       return;
     }
 
     var fragment = document.createDocumentFragment();
+    var shown = 0;
 
-    items.forEach(function (item) { fragment.appendChild(row(item)); });
+    if (notice) fragment.appendChild(notice);
+
+    groupKeys(items).forEach(function (key) {
+      if (state.filter && key !== state.filter) return;
+
+      var group = items.filter(function (item) { return item.size === key; });
+      var title = el('div', 'pb-grp', key ? say(key) : '');
+      var note = groupNote ? groupNote(key) : '';
+
+      if (note) title.appendChild(el('span', 'pb-grp-why', note));
+
+      fragment.appendChild(title);
+      group.forEach(function (item) { fragment.appendChild(row(item)); });
+      shown += group.length;
+    });
+
+    if (shown === 0) fragment.appendChild(empty(say('emptyShelf', say(state.filter)), null));
+
     list.appendChild(fragment);
     list.scrollTop = scroll;
   }
 
-  // The web view draws no hover tips, so a button that would be refused says why underneath it.
+  // The view's shelves in its order, then any shelf a package names that the view does not list, so nothing is hidden.
+  function groupKeys(items) {
+    var keys = state.data.sizes.map(function (size) { return size.key; });
+
+    items.forEach(function (item) {
+      if (keys.indexOf(item.size) < 0) keys.push(item.size);
+    });
+
+    return keys.filter(function (key) { return items.some(function (item) { return item.size === key; }); });
+  }
+
+  function empty(head, hint) {
+    var node = el('div', 'pb-empty');
+    node.appendChild(el('div', 'pb-empty-head', head));
+
+    if (hint) node.appendChild(el('div', null, hint));
+
+    return node;
+  }
+
+  // A full shelf greys every yard package on it, so its group says so once instead of under every button.
+  function homeNote(key) {
+    return isFull(sizeOf(key)) ? say('shelfFull') : '';
+  }
+
+  // With no free spot every Take out is greyed for the same reason, so it is said once, above the list.
+  function bankNotice(data) {
+    if (!data.takeWhy || data.bank.length === 0) return null;
+
+    var node = el('div', 'pb-notice');
+    node.appendChild(svgIcon(document, null, WARN_PATH));
+    node.appendChild(el('span', null, say(data.takeWhy === 'noSpot' ? 'noSpotNote' : data.takeWhy)));
+
+    return node;
+  }
+
+  // The web view draws no hover tips, so a package refused for a reason of its own says why under its name.
   function homeRow(item) {
-    return packageRow(item, button(document, say('bank'), 'store', item.id, !item.why, 'pb-btn'), item.why);
+    var isGroupReason = item.why === 'full' && isFull(sizeOf(item.size));
+    var node = button(document, say('bank'), 'store', item.id, !item.why, 'pb-btn');
+    node.appendChild(svgIcon(document, null, ARROW_IN_PATH));
+
+    return packageRow(item, node, isGroupReason ? null : item.why, !!item.why);
   }
 
   function bankRow(item) {
     var why = state.data.takeWhy;
+    var node = make(document, 'button', 'pb-btn');
+    node.appendChild(svgIcon(document, null, ARROW_OUT_PATH));
+    node.appendChild(el('span', null, say('takeOut')));
+    node.setAttribute('data-act', 'takeout');
+    node.setAttribute('data-args', String(item.slot));
 
-    return packageRow(item, button(document, say('takeOut'), 'takeout', item.slot, !why, 'pb-btn'), why);
+    if (why) node.disabled = true;
+
+    return packageRow(item, node, null, !!why);
   }
 
-  function packageRow(item, action, why) {
-    var node = el('div', 'pb-row');
+  function packageRow(item, action, why, isOff) {
+    var node = el('div', 'pb-row' + (isOff ? ' pb-off' : ''));
     var main = el('div', 'pb-main');
-    var tags = el('div', 'pb-tags');
-    var acts = el('div', 'pb-acts');
+    var meta = el('div', 'pb-meta');
     main.appendChild(el('div', 'pb-name', item.name));
 
-    if (item.size) tags.appendChild(el('span', 'pb-badge' + (item.size === 'story' ? ' pb-badge-story' : ''), say(item.size)));
-    if (item.looted) tags.appendChild(el('span', 'pb-badge pb-badge-looted', say('noRefund')));
-
-    main.appendChild(tags);
-    acts.appendChild(action);
-
-    if (why) acts.appendChild(el('div', 'pb-why', say(why)));
+    if (why) meta.appendChild(el('span', 'pb-why', say(why)));
+    if (item.looted) meta.appendChild(el('span', 'pb-tag', say('noRefund')));
+    if (meta.children.length > 0) main.appendChild(meta);
 
     node.appendChild(icon(document, item, 'pb-icon'));
     node.appendChild(main);
-    node.appendChild(acts);
+    node.appendChild(action);
 
     return node;
   }
@@ -333,6 +523,7 @@
     build();
     state.data = data || state.data;
     state.isOpen = true;
+    state.filter = null;
     ui.status.textContent = '';
     ui.toast.style.display = 'none';
     ui.root.style.display = 'flex';
@@ -554,12 +745,17 @@
   }
 
   function boxIcon(doc, className) {
+    return svgIcon(doc, className, BOX_PATH);
+  }
+
+  function svgIcon(doc, className, shape) {
     var svg = doc.createElementNS(SVG_NS, 'svg');
     var path = doc.createElementNS(SVG_NS, 'path');
 
-    svg.setAttribute('class', className);
+    if (className) svg.setAttribute('class', className);
+
     svg.setAttribute('viewBox', '0 0 24 24');
-    path.setAttribute('d', BOX_PATH);
+    path.setAttribute('d', shape);
     svg.appendChild(path);
 
     return svg;
