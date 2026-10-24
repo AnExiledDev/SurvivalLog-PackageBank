@@ -28,7 +28,7 @@ Works in English and Chinese.
 
 ## Requirements
 
-- Survival Log 1.1.19131. A game update can break it until the mod is updated.
+- Survival Log 1.1.19611. A game update can break it until the mod is updated.
 - [BepInEx for Survival Log](https://www.nexusmods.com/survivallog/mods/12). Install it first.
 - Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.
 
