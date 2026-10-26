@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using PackageBank.Core;
@@ -17,18 +17,77 @@ internal sealed class GameBank : IBankGame
 {
     private const string TakeOutReason = "packagebank";
 
+    private static readonly Comparison<HomeSpot> ById = (a, b) => a.Id.CompareTo(b.Id);
+
     private readonly Action<string> _log;
     private readonly GameShop _shop;
     private readonly HashSet<string> _reportedFailures = new();
-    private IReadOnlySet<int>? _storyFurniture;
+    private readonly KeyedMemo<(IntPtr Config, bool IsChinese, bool HasIcons), FurnitureInfo> _furniture;
+    private readonly Task<(IconIndex Icons, string Note)>? _iconLoad;
+    private readonly List<HomeSpot> _spots = new();
+
     private IconIndex? _icons;
+    private IReadOnlySet<int>? _storyFurniture;
+    private IntPtr _storyConfig;
+    private ConfigManager? _describing;
+
+    private (IntPtr Agents, IntPtr Map, int Version, int Count) _spotsStamp;
+    private bool _hasSpots;
+    private (IntPtr Dict, int Version, int Count) _contentsStamp;
+    private BankContents? _contents;
+    private long _contentsGeneration;
+    private long _failedPrint;
+
     private int _loggedHomeCount = -1;
     private string? _loggedNotReady;
+    private int _loggedNotReadyMode;
 
     public GameBank(GameShop shop, Action<string> log)
     {
         _shop = shop;
         _log = log;
+        _furniture = new KeyedMemo<(IntPtr, bool, bool), FurnitureInfo>(Describe);
+
+        try
+        {
+            _iconLoad = WebIcons.LoadInBackground();
+        }
+        catch (Exception ex)
+        {
+            _log("could not start reading the web icons, packages will show letters instead: " + ex.Message);
+            _icons = IconIndex.Empty;
+        }
+    }
+
+    public BankState State()
+    {
+        var isChinese = GameLanguage.IsChinese();
+
+        try
+        {
+            return ReadState(isChinese);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("read", ex);
+
+            return new BankState(BankPlace.NoGame, IsShopOpen: false, Menu: null, isChinese);
+        }
+    }
+
+    public long Print()
+    {
+        try
+        {
+            return ReadPrint();
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("print", ex);
+
+            // A print that cannot be read never matches, so the bank is read the old way, every refresh.
+            return --_failedPrint;
+        }
     }
 
     public BankRead Read()
@@ -80,7 +139,15 @@ internal sealed class GameBank : IBankGame
         }
 
         _log($"banked {package.Name} (furniture {package.ConfigId}, package {package.Id}) into slot {entry.Slot}");
-        Softly("close the click menu", () => GameMenu.CloseIfOn(package.Id));
+
+        try
+        {
+            GameMenu.CloseIfOn(package.Id);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("close the click menu", ex);
+        }
 
         if (package.IsPurchased) _shop.Banked(shopIndex, package.ConfigId, package.Paid, SlotTypeOf(package.ConfigId));
 
@@ -119,11 +186,28 @@ internal sealed class GameBank : IBankGame
             ClearEntry(counters, entry.Slot);
             _log($"took slot {entry.Slot} (furniture {entry.ConfigId}) out as package {id}");
 
-            if (entry.IsPurchased) Softly("give back the shop record", () => build.AddPurchased(id, entry.Source, entry.Paid));
+            if (entry.IsPurchased)
+            {
+                try
+                {
+                    build.AddPurchased(id, entry.Source, entry.Paid);
+                }
+                catch (Exception ex)
+                {
+                    ReportOnce("give back the shop record", ex);
+                }
+            }
 
-            Softly("give back the color", () => Dye(agents, id, entry.Dye));
+            try
+            {
+                Dye(agents, id, entry.Dye);
+            }
+            catch (Exception ex)
+            {
+                ReportOnce("give back the color", ex);
+            }
 
-            if (entry.IsPurchased) _shop.TakenOut(entry.ConfigId, entry.Paid, NameOf(config, entry.ConfigId), config.Get_Config_Furniture(entry.ConfigId));
+            if (entry.IsPurchased) _shop.TakenOut(entry.ConfigId, entry.Paid, NameOf(config, entry.ConfigId), Row(config, entry.ConfigId));
 
             _shop.Recount(build);
 
@@ -151,86 +235,238 @@ internal sealed class GameBank : IBankGame
         bag.DyeSlot = dye;
     }
 
+    /// <summary>Where the player is and which screens are open, with no read of the yard or the bank.</summary>
+    private BankState ReadState(bool isChinese)
+    {
+        var game = LoadedGame();
+
+        if (game == null) return NotReady(BankPlace.NoGame, "no game loaded", isChinese);
+
+        var (world, _, _, role) = game.Value;
+        var mode = world.GameModeKey;
+
+        if (mode == GameMode.Explore) return NotReady(BankPlace.Away, "on an expedition", isChinese);
+        if (mode != GameMode.Default) return NotReady(BankPlace.NoGame, "game mode", isChinese, (int)mode);
+        if (AgentTools.GetAgentComponent<BuildComponent>(role) == null) return NotReady(BankPlace.NoGame, "the character has no build component", isChinese);
+        if (Counters() == null) return NotReady(BankPlace.NoGame, "the save's counters are missing", isChinese);
+
+        _loggedNotReady = null;
+
+        return new BankState(BankPlace.Home, _shop.IsOpen(), MenuOpenOn(), isChinese);
+    }
+
+    /// <summary>
+    /// Everything Read draws from, as stamps rather than values: the loaded game's objects (a new save makes new ones),
+    /// the bank's counters (re-read only when the counters changed, and counted as changed only when the bank's own
+    /// entries did), the yard's spot map and purchase maps, each yard package's shown flag and color, the free spot
+    /// count, the shop's list,
+    /// the click menu and the icons arriving. A changed dictionary always has a new version: the game bumps it on every
+    /// add, overwrite and removal.
+    /// </summary>
+    private long ReadPrint()
+    {
+        var game = LoadedGame();
+
+        if (game == null) return 0;
+
+        var (world, config, agents, role) = game.Value;
+        var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+        var counters = Counters();
+
+        if (build == null || counters == null) return 0;
+
+        var print = new ChangePrint();
+        var points = build._PackagePointMap_k__BackingField;
+
+        print.Add(world.Pointer.ToInt64());
+        print.Add(config.Pointer.ToInt64());
+        print.Add(agents.Pointer.ToInt64());
+        Contents(counters);
+        print.Add(_contentsGeneration);
+        AddStamp(ref print, points);
+        AddStamp(ref print, build._PurchaseSourceMap_k__BackingField);
+        AddStamp(ref print, build._PurchasePaidMap_k__BackingField);
+
+        if (points != null)
+        {
+            foreach (var spot in Spots(agents, points))
+            {
+                print.Add(spot.Bag._IsShow_k__BackingField);
+                print.Add(spot.Bag._DyeSlot_k__BackingField);
+            }
+        }
+
+        // The free spot count goes in as itself: the home can gain spots with no package moving.
+        print.Add(build.GetFreePackagePointCount());
+        print.Add(_shop.Print());
+        print.Add(MenuOpenOn() ?? 0);
+        print.Add(Icons() != null);
+
+        return print.Value;
+    }
+
+    private static void AddStamp<TKey, TValue>(ref ChangePrint print, Il2CppSystem.Collections.Generic.Dictionary<TKey, TValue>? map)
+    {
+        if (map == null)
+        {
+            print.Add(0L);
+
+            return;
+        }
+
+        print.Add(map.Pointer.ToInt64());
+        print.Add(map._version);
+        print.Add(map.Count);
+    }
+
     private BankRead ReadBank()
     {
         var game = LoadedGame();
 
-        if (game == null) return NotReady(new BankRead.NoGame(), "no game loaded");
+        if (game == null) return new BankRead.NoGame();
 
         var (world, config, agents, role) = game.Value;
         var mode = world.GameModeKey;
 
-        if (mode == GameMode.Explore) return NotReady(new BankRead.Away(), "on an expedition");
-        if (mode != GameMode.Default) return NotReady(new BankRead.NoGame(), $"game mode {mode}");
+        if (mode == GameMode.Explore) return new BankRead.Away();
+        if (mode != GameMode.Default) return new BankRead.NoGame();
 
         var build = AgentTools.GetAgentComponent<BuildComponent>(role);
         var counters = Counters();
 
-        if (build == null) return NotReady(new BankRead.NoGame(), "the character has no build component");
-        if (counters == null) return NotReady(new BankRead.NoGame(), "the save's counters are missing");
+        if (build == null || counters == null) return new BankRead.NoGame();
 
-        _loggedNotReady = null;
+        var contents = Contents(counters);
+        var scope = (config.Pointer, GameLanguage.IsChinese(), Icons() != null);
+        var home = ReadHome(config, agents, build, scope);
+        var banked = new List<BankedPackage>(contents.Entries.Count);
 
-        var contents = BankCounters.Read(Copy(counters));
-        var home = ReadHome(config, agents, build);
-        var banked = contents.Entries.Select(entry => Banked(config, entry)).ToList();
+        foreach (var entry in contents.Entries)
+        {
+            var info = Info(config, scope, entry.ConfigId);
 
-        LogHomeCount(home.Count);
+            banked.Add(new BankedPackage(entry, info.Name, info.Icon, info.Size));
+        }
 
         return new BankRead.Ready(new Bank(home, banked, contents.Bonus, build.GetFreePackagePointCount(), _shop.Rows(), MenuOpenOn()));
     }
 
     /// <summary>Only the yard's numbered spots: the car's spot and the boxes by the doors are left alone.</summary>
-    private List<HomePackage> ReadHome(ConfigManager config, AgentManager agents, BuildComponent build)
+    private List<HomePackage> ReadHome(ConfigManager config, AgentManager agents, BuildComponent build, (IntPtr, bool, bool) scope)
     {
         var home = new List<HomePackage>();
+        var points = build._PackagePointMap_k__BackingField;
+
+        if (points == null) return home;
+
         var sources = build.PurchaseSourceMap;
 
-        foreach (var spot in build.PackagePointMap)
+        foreach (var spot in Spots(agents, points))
+        {
+            var id = spot.Id;
+            var bag = spot.Bag;
+            var info = Info(config, scope, spot.ConfigId);
+            var isPurchased = sources != null && sources.ContainsKey(id);
+
+            // IsSelected and IsAltSelected are only the hover highlight (name shown, outline), which every package the
+            // click menu is open on has; a package being carried or placed is hidden instead.
+            home.Add(new HomePackage(
+                id,
+                spot.ConfigId,
+                info.Name,
+                info.Icon,
+                info.Size,
+                !bag._IsShow_k__BackingField,
+                isPurchased,
+                isPurchased ? build.GetPurchasePaid(id) : BuildComponent.PAID_UNKNOWN,
+                isPurchased ? sources![id] : 0,
+                bag._DyeSlot_k__BackingField));
+        }
+
+        return home;
+    }
+
+    /// <summary>
+    /// The yard's packages, in id order, looked up again only when the spot map changes (a package placed, moved off,
+    /// banked or taken out, or a new save). A spot whose package the game has not made yet is looked for again next time.
+    /// </summary>
+    private List<HomeSpot> Spots(AgentManager agents, Il2CppSystem.Collections.Generic.Dictionary<long, string> points)
+    {
+        var stamp = (agents.Pointer, points.Pointer, points._version, points.Count);
+
+        if (_hasSpots && stamp == _spotsStamp) return _spots;
+
+        var isComplete = true;
+
+        _spots.Clear();
+
+        foreach (var spot in points)
         {
             if (!PackageSizes.IsHomePackageSpot(spot.Value)) continue;
 
             var bag = agents.GetAgent(spot.Key)?.TryCast<BagFurniture>();
 
-            if (bag == null || bag.IsDoorBox) continue;
+            if (bag == null)
+            {
+                isComplete = false;
 
-            var id = spot.Key;
-            var configId = bag.FurnitureConfigId;
-            var isPurchased = sources != null && sources.ContainsKey(id);
-            var row = config.Get_Config_Furniture(configId);
-            var size = row == null ? null : PackageSizes.Of(row.SlotType, StoryFurniture(config).Contains(configId));
-            // IsSelected and IsAltSelected are only the hover highlight (name shown, outline), which every package the
-            // click menu is open on has; a package being carried or placed is hidden instead.
-            var isBusy = !bag.IsShow;
+                continue;
+            }
 
-            home.Add(new HomePackage(
-                id,
-                configId,
-                NameOf(config, configId),
-                Icons().Resolve(row?.ICON),
-                size,
-                isBusy,
-                isPurchased,
-                isPurchased ? build.GetPurchasePaid(id) : BuildComponent.PAID_UNKNOWN,
-                isPurchased ? sources![id] : 0,
-                bag.DyeSlot));
+            if (bag._IsDoorBox_k__BackingField) continue;
+
+            _spots.Add(new HomeSpot(spot.Key, bag, bag._FurnitureConfigId_k__BackingField));
         }
 
-        return home.OrderBy(package => package.Id).ToList();
+        _spots.Sort(ById);
+        _spotsStamp = stamp;
+        _hasSpots = isComplete;
+        LogHomeCount(_spots.Count);
+
+        return _spots;
     }
 
-    private BankedPackage Banked(ConfigManager config, BankEntry entry)
+    /// <summary>
+    /// The bank's entries, read again only when the save's counters changed. The counters hold much more than the bank,
+    /// so a re-read that finds the same entries keeps the generation, and the view is not rebuilt for it.
+    /// </summary>
+    private BankContents Contents(Il2CppSystem.Collections.Generic.Dictionary<string, int> counters)
     {
-        var row = config.Get_Config_Furniture(entry.ConfigId);
-        var size = row == null ? null : PackageSizes.Of(row.SlotType, StoryFurniture(config).Contains(entry.ConfigId));
+        var stamp = (counters.Pointer, counters._version, counters.Count);
 
-        return new BankedPackage(entry, NameOf(config, entry.ConfigId), Icons().Resolve(row?.ICON), size);
+        if (_contents != null && stamp == _contentsStamp) return _contents;
+
+        var contents = BankCounters.Read(Copy(counters));
+
+        if (_contents == null || !contents.SameAs(_contents)) _contentsGeneration++;
+
+        _contents = contents;
+        _contentsStamp = stamp;
+
+        return contents;
     }
 
-    /// <summary>Read once: the item table does not change while the game runs.</summary>
+    /// <summary>A furniture's name, icon and shelf, looked up once per loaded tables, language and icon index.</summary>
+    private FurnitureInfo Info(ConfigManager config, (IntPtr, bool, bool) scope, int configId)
+    {
+        _describing = config;
+
+        return _furniture.Get(scope, configId);
+    }
+
+    private FurnitureInfo Describe(int configId)
+    {
+        var config = _describing!;
+        var row = Row(config, configId);
+        var size = row == null ? null : PackageSizes.Of(row.SlotType, StoryFurniture(config).Contains(configId));
+
+        return new FurnitureInfo(NameOf(config, configId), Icons()?.Resolve(row?.ICON), size);
+    }
+
+    /// <summary>Read once per loaded tables: the item table does not change while the game runs.</summary>
     private IReadOnlySet<int> StoryFurniture(ConfigManager config)
     {
-        if (_storyFurniture != null) return _storyFurniture;
+        if (_storyFurniture != null && config.Pointer == _storyConfig) return _storyFurniture;
 
         var items = new List<(int, int)>();
         var all = config.Get_Config_Item_All();
@@ -244,19 +480,35 @@ internal sealed class GameBank : IBankGame
         }
 
         _storyFurniture = StoryPackages.From(items);
+        _storyConfig = config.Pointer;
         _log($"{_storyFurniture.Count} story furniture found");
 
         return _storyFurniture;
     }
 
+    /// <summary>
+    /// The furniture table read directly: the game's getter logs an error for every id it lacks, and a log write is slow.
+    /// </summary>
+    private static Config_Furniture? Row(ConfigManager config, int configId)
+    {
+        var table = config._Config_Furniture_Dict;
+
+        return table != null && table.TryGetValue(configId, out var row) ? row : null;
+    }
+
     private static string NameOf(ConfigManager config, int configId)
     {
-        var row = config.Get_Config_Furniture(configId);
+        var row = Row(config, configId);
 
         return Translate(config, row?.Name) ?? NonEmpty(row?.Name_Local) ?? NonEmpty(row?.Name) ?? $"Package {configId}";
     }
 
-    private static int? SlotTypeOf(int configId) => GameSingleton.Existing<ConfigManager>()?.Get_Config_Furniture(configId)?.SlotType;
+    private static int? SlotTypeOf(int configId)
+    {
+        var config = GameSingleton.Existing<ConfigManager>();
+
+        return config == null ? null : Row(config, configId)?.SlotType;
+    }
 
     private static void WriteEntry(Il2CppSystem.Collections.Generic.Dictionary<string, int> counters, BankEntry entry)
     {
@@ -306,19 +558,43 @@ internal sealed class GameBank : IBankGame
         return (world, config, agents, role);
     }
 
-    /// <summary>Logs why the bank is shut, once each time the reason changes, so a hidden HUD button can be explained.</summary>
-    private BankRead NotReady(BankRead read, string reason)
+    /// <summary>
+    /// Logs why the bank is shut, once each time the reason changes, so a hidden HUD button can be explained. The line is
+    /// built only then, not every refresh.
+    /// </summary>
+    private BankState NotReady(BankPlace place, string reason, bool isChinese, int mode = 0)
     {
-        if (reason != _loggedNotReady) _log($"bank shut: {reason}");
+        if (!ReferenceEquals(reason, _loggedNotReady) || mode != _loggedNotReadyMode)
+        {
+            _log(mode == 0 ? "bank shut: " + reason : $"bank shut: {reason} {(GameMode)mode}");
+            _loggedNotReady = reason;
+            _loggedNotReadyMode = mode;
+        }
 
-        _loggedNotReady = reason;
-
-        return read;
+        return new BankState(place, IsShopOpen: false, Menu: null, isChinese);
     }
 
     private static UnityEngine.Vector3 PositionOf(BaseAgent agent) => AgentTools.GetAgentComponent<TransformComponent>(agent)?.Position ?? UnityEngine.Vector3.zero;
 
-    private IconIndex Icons() => _icons ??= WebIcons.Load(_log);
+    /// <summary>The web icons once the worker has walked the folder; null until then, and the panel shows letters.</summary>
+    private IconIndex? Icons()
+    {
+        if (_icons != null) return _icons;
+        if (_iconLoad == null || !_iconLoad.IsCompleted) return null;
+
+        if (_iconLoad.IsCompletedSuccessfully)
+        {
+            _log(_iconLoad.Result.Note);
+            _icons = _iconLoad.Result.Icons;
+        }
+        else
+        {
+            _log("reading the web icons failed, packages will show letters instead: " + _iconLoad.Exception?.GetBaseException().Message);
+            _icons = IconIndex.Empty;
+        }
+
+        return _icons;
+    }
 
     private void LogHomeCount(int count)
     {
@@ -342,22 +618,15 @@ internal sealed class GameBank : IBankGame
     /// <summary>A broken click menu costs only the menu's Bank entry, never the rest of the bank.</summary>
     private long? MenuOpenOn()
     {
-        long? id = null;
-
-        Softly("read the click menu", () => id = GameMenu.OpenOn());
-
-        return id;
-    }
-
-    private void Softly(string operation, Action action)
-    {
         try
         {
-            action();
+            return GameMenu.OpenOn();
         }
         catch (Exception ex)
         {
-            ReportOnce(operation, ex);
+            ReportOnce("read the click menu", ex);
+
+            return null;
         }
     }
 
@@ -365,4 +634,8 @@ internal sealed class GameBank : IBankGame
     {
         if (_reportedFailures.Add(operation)) _log($"{operation} failed (each kind reported once): {ex}");
     }
+
+    private readonly record struct HomeSpot(long Id, BagFurniture Bag, int ConfigId);
+
+    private sealed record FurnitureInfo(string Name, string? Icon, PackageSize? Size);
 }

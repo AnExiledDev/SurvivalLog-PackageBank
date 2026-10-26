@@ -5,8 +5,8 @@ using UnityEngine;
 namespace PackageBank.Adapters;
 
 /// <summary>
-/// The bank's game side, run once a frame: the panel's open state, the view sent to page.js for the panel and for the
-/// build shop's list, and the presses the page asks for. Page messages arrive on the web view's thread, so they are
+/// The bank's game side, run once a frame: the panel's open state, the presses the page asks for, and a refresh once a
+/// second that keeps the page in step (see BankFeed). Page messages arrive on the web view's thread, so they are
 /// queued and handled here, in this frame.
 /// </summary>
 internal sealed class BankSession
@@ -15,15 +15,13 @@ internal sealed class BankSession
 
     private readonly IBankGame _game;
     private readonly WebPage _page;
+    private readonly BankFeed _feed;
     private readonly Action<string> _log;
     private BankLimits _limits = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
 
-    private string? _shownView;
-    private string? _shownShop;
-    private bool _hasSentShop;
     private float _nextRefreshAt;
-    private bool? _sentLive;
     private bool _isOpen;
+    private bool _watchesMenuEveryFrame = true;
     private long? _menuOpenOn;
     private bool _hasReportedMenuReadFailure;
 
@@ -32,14 +30,22 @@ internal sealed class BankSession
         _game = game;
         _page = page;
         _log = log;
+        _feed = new BankFeed(game, page, _limits, log);
     }
 
     /// <summary>Called on the main thread at start and after each settings change; the next refresh shows the new limits.</summary>
     public void UseLimits(BankLimits limits)
     {
         _limits = limits;
+        _feed.UseLimits(limits);
         _nextRefreshAt = 0f;
     }
+
+    /// <summary>
+    /// With the menu-open hook in, every menu that opens reports itself, so the menu is no longer looked for every frame;
+    /// the once-a-second refresh sees it close.
+    /// </summary>
+    public void MenuHooked(bool isHooked) => _watchesMenuEveryFrame = !isHooked;
 
     public void Update()
     {
@@ -55,12 +61,12 @@ internal sealed class BankSession
             return;
         }
 
-        if (now >= _nextRefreshAt || HasMenuChanged()) Refresh();
+        if (now >= _nextRefreshAt || (_watchesMenuEveryFrame && HasMenuChanged())) Refresh();
     }
 
     /// <summary>
-    /// The click menu's Bank entry must be there as soon as the menu opens, or a quick click lands on Destroy, so the
-    /// menu is checked every frame and a change refreshes at once instead of at the next once-a-second refresh.
+    /// Only without the menu-open hook: the click menu's Bank entry must be there as soon as the menu opens, or a quick
+    /// click lands on Destroy, so the menu is checked every frame and a change refreshes at once.
     /// </summary>
     private bool HasMenuChanged()
     {
@@ -93,7 +99,7 @@ internal sealed class BankSession
     public void MenuOpened(long id)
     {
         GameMenu.Opening(id);
-        _menuOpenOn = GameMenu.OpenOn();
+        _menuOpenOn = id == 0 ? null : id;
         Refresh();
     }
 
@@ -134,8 +140,8 @@ internal sealed class BankSession
                 break;
             case PageCommand.Ready:
                 _log("page script ready");
-                _sentLive = null;
-                _hasSentShop = false;
+                _page.Reloaded();
+                _feed.PageReloaded();
                 _nextRefreshAt = 0f;
                 ReopenAfterReload();
                 break;
@@ -151,58 +157,14 @@ internal sealed class BankSession
     }
 
     /// <summary>
-    /// One read a second feeds everything the page shows: the HUD button (only at home), the open panel, and the bank
-    /// rows under the build shop's list. Each is sent only when it changed.
+    /// Once a second, and straight after anything that changes what the page shows. Sends only what changed, and reads
+    /// the bank only while a screen that shows it is open.
     /// </summary>
     private void Refresh()
     {
         _nextRefreshAt = Time.unscaledTime + RefreshSeconds;
-        var view = BankView.Of(_game.Read(), _limits);
 
-        SendLive(view != null);
-        SendShop(view);
-
-        if (!_isOpen) return;
-
-        if (view == null)
-        {
-            Close();
-
-            return;
-        }
-
-        if (view == _shownView) return;
-
-        _shownView = view;
-        _page.Show(view);
-    }
-
-    private void SendLive(bool isLive)
-    {
-        if (isLive == _sentLive) return;
-
-        if (_page.Live(isLive))
-        {
-            _sentLive = isLive;
-            _log($"HUD button {(isLive ? "shown" : "hidden")}");
-        }
-    }
-
-    /// <summary>
-    /// The view goes to the game's pages only while the build shop or the click menu is open; null takes the bank rows
-    /// and the menu's Bank entry away.
-    /// </summary>
-    private void SendShop(string? view)
-    {
-        var isPageOpen = view != null && (!view.Contains("\"shop\":null", StringComparison.Ordinal) || !view.Contains("\"menu\":null", StringComparison.Ordinal));
-        var shop = isPageOpen ? view : null;
-
-        if (_hasSentShop && shop == _shownShop) return;
-
-        if (!_page.Shop(shop)) return;
-
-        _hasSentShop = true;
-        _shownShop = shop;
+        if (!_feed.Refresh(_isOpen)) Close();
     }
 
     private void Toggle()
@@ -214,13 +176,13 @@ internal sealed class BankSession
     /// <summary>Away from home, or with no game loaded, there is nothing to bank and the panel stays shut.</summary>
     private void Open()
     {
-        var view = BankView.Of(_game.Read(), _limits);
+        var view = _feed.View();
 
         if (view == null) return;
 
         _isOpen = true;
         InputGate.PanelOpened();
-        _shownView = view;
+        _feed.Shown(view);
         _page.Open(view);
         _log("panel opened");
     }
@@ -239,7 +201,7 @@ internal sealed class BankSession
     {
         if (!_isOpen) return;
 
-        var view = BankView.Of(_game.Read(), _limits);
+        var view = _feed.View();
 
         if (view == null)
         {
@@ -248,11 +210,14 @@ internal sealed class BankSession
             return;
         }
 
-        _shownView = view;
+        _feed.Shown(view);
         _page.Open(view);
     }
 
-    /// <summary>Runs one press, shows what it did, and redraws the panel and the shop rows straight after.</summary>
+    /// <summary>
+    /// Runs one press, shows what it did, and redraws the panel and the shop rows straight after. Only a page command
+    /// gets here, never a plain frame.
+    /// </summary>
     private void Press(string name, Func<BankOutcome> press)
     {
         var isChinese = GameLanguage.IsChinese();
@@ -271,6 +236,7 @@ internal sealed class BankSession
         }
 
         _page.Status(message);
+        _feed.Forget();
         Refresh();
     }
 }

@@ -29,6 +29,18 @@ internal sealed class FakeGame : IBankGame
 
     public bool IsNoGame { get; set; }
 
+    /// <summary>Which save is loaded: a new value is another save loaded over this one.</summary>
+    public int SaveId { get; set; } = 1;
+
+    public bool IsChinese { get; set; }
+
+    /// <summary>How many times each part of the game side was asked, so tests can see what a refresh cost.</summary>
+    public int Reads { get; private set; }
+
+    public int Prints { get; private set; }
+
+    public int States { get; private set; }
+
     /// <summary>The game refusing to take a package off the yard.</summary>
     public bool IsStoreBroken { get; set; }
 
@@ -61,8 +73,40 @@ internal sealed class FakeGame : IBankGame
         return package;
     }
 
+    public BankState State()
+    {
+        States++;
+
+        var place = IsNoGame ? BankPlace.NoGame : IsAway ? BankPlace.Away : BankPlace.Home;
+
+        return new BankState(place, Shop != null, Menu, IsChinese);
+    }
+
+    /// <summary>Like the game's print: it moves with everything Read returns, and with the save and the language.</summary>
+    public long Print()
+    {
+        Prints++;
+
+        var print = new ChangePrint();
+
+        print.Add(SaveId);
+        print.Add(IsChinese);
+        print.Add(FreeSpots);
+        print.Add(Menu ?? -1);
+        print.Add(Shop == null ? -1 : Shop.Count);
+
+        foreach (var row in Shop ?? new List<ShopRow>()) print.Add(row.GetHashCode());
+        foreach (var package in Home) print.Add(package.GetHashCode());
+        foreach (var (key, value) in Counters.OrderBy(pair => pair.Key, StringComparer.Ordinal)) print.Add(((long)key.GetHashCode() << 32) ^ value);
+        foreach (var (configId, icon) in Icons.OrderBy(pair => pair.Key)) print.Add(((long)configId << 32) ^ icon.GetHashCode());
+
+        return print.Value;
+    }
+
     public BankRead Read()
     {
+        Reads++;
+
         if (IsNoGame) return new BankRead.NoGame();
         if (IsAway) return new BankRead.Away();
 

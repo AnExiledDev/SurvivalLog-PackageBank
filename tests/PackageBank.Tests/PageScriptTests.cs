@@ -485,6 +485,151 @@ public class PageScriptTests
         Assert.Equal("Bank", page.Text("menuEntries()[2].querySelector('.menu-btn-text').textContent"));
     }
 
+    // ===== What a check costs =====
+
+    /// <summary>Every page the bank adds to open, the HUD button and the shop's bank placed, and the click menu shut.</summary>
+    private static PageScript AllPlaced(FakeGame game)
+    {
+        var page = new PageScript();
+
+        page.Run("openHud(); openPrepHud(); openShop(['Bed', 'Lamp']); openMenu(['Install', 'Return']); settle()");
+        page.Live(true);
+        page.Shop(ViewOf(game));
+        page.Poll();
+        page.Run("settle()");
+
+        return page;
+    }
+
+    [Fact]
+    public void Once_everything_is_placed_a_page_check_searches_no_page()
+    {
+        var page = AllPlaced(Yard(out _, out _));
+
+        page.Run("searches = 0; poll(); poll(); settle()");
+
+        Assert.Equal(0, page.Number("searches"));
+        Assert.True(page.Is("hudButton() && prepHudButton() && shopBankButton(0) && shopBankButton(1) && shopBank()"));
+    }
+
+    [Fact]
+    public void With_no_game_loaded_and_the_shop_shut_a_page_check_searches_no_page_and_adds_nothing()
+    {
+        var page = new PageScript();
+        page.Run("openHud(); openShop(['Bed']); openMenu(['Install', 'Return']); settle()");
+        page.Live(false);
+        page.Shop(null);
+
+        page.Run("searches = 0; poll(); poll(); settle()");
+
+        Assert.Equal(0, page.Number("searches"));
+        Assert.False(page.Is("hudButton()"));
+        Assert.False(page.Is("shopBank()"));
+        Assert.False(page.Is("menuBank()"));
+    }
+
+    [Fact]
+    public void A_shop_row_that_loses_its_bank_button_gets_it_back_at_the_next_check()
+    {
+        var page = AllPlaced(Yard(out _, out _));
+
+        page.Run("shopBankButton(1).remove()");
+        page.Poll();
+
+        Assert.True(page.Is("shopBankButton(1)"));
+        Assert.Equal(1, page.Count("shopRows()[1].querySelectorAll('.pb-bank-btn')"));
+    }
+
+    [Fact]
+    public void A_HUD_the_game_draws_again_gets_the_button_back_at_the_next_check()
+    {
+        var page = AllPlaced(Yard(out _, out _));
+
+        page.Run("pageOf(/CoreUI1/).querySelector('.vertical-tools').remove(); var column = pageOf(/CoreUI1/).body.appendChild(new FakeElement('div')); column.className = 'vertical-tools'");
+        page.Poll();
+
+        Assert.True(page.Is("hudButton().parentNode === pageOf(/CoreUI1/).querySelector('.vertical-tools')"));
+    }
+
+    [Fact]
+    public void Redrawing_the_open_panel_searches_nothing_and_the_root_watch_searches_nothing_either()
+    {
+        var game = Yard(out _, out _);
+        var page = new PageScript();
+        page.Run("openHud(); openShop(['Bed', 'Lamp']); settle()");
+        page.Open(ViewOf(game));
+        game.Add(Lamp, paid: 40);
+
+        page.Run($"searches = 0; window.__slpkgbank.setData({ViewOf(game)}); settle()");
+
+        Assert.Equal(0, page.Number("searches"));
+    }
+
+    [Fact]
+    public void A_new_view_keeps_the_rows_that_did_not_change_and_draws_the_new_one()
+    {
+        var game = Yard(out var bed, out var lamp);
+        var page = new PageScript();
+        page.Open(ViewOf(game));
+        page.Run($"window.kept = [panelButton('store', '{bed.Id}').parentNode, panelButton('store', '{lamp.Id}').parentNode, panelButton('takeout', 0).parentNode]");
+        var table = game.Add(Table, paid: 90);
+
+        page.Run($"window.__slpkgbank.setData({ViewOf(game)})");
+
+        Assert.True(page.Is($"panelButton('store', '{bed.Id}').parentNode === kept[0] && panelButton('store', '{lamp.Id}').parentNode === kept[1]"));
+        Assert.True(page.Is("panelButton('takeout', 0).parentNode === kept[2]"));
+        Assert.True(page.Is("kept[0].isConnected"));
+        Assert.True(page.Is($"panelButton('store', '{table.Id}')"));
+        Assert.Equal("Large|Medium|Small", page.Text($"{YardList}.querySelectorAll('.pb-grp').map(function (g) {{ return g.textContent; }}).join('|')"));
+        Assert.Equal(3, page.Count($"{YardList}.querySelectorAll('.pb-row')"));
+    }
+
+    [Fact]
+    public void A_row_whose_package_changed_is_drawn_again()
+    {
+        var game = Yard(out var bed, out _);
+        var page = new PageScript();
+        page.Open(ViewOf(game));
+        page.Run($"window.kept = panelButton('store', '{bed.Id}').parentNode");
+        game.Home[game.Home.FindIndex(package => package.Id == bed.Id)] = bed with { IsBusy = true };
+
+        page.Run($"window.__slpkgbank.setData({ViewOf(game)})");
+
+        Assert.False(page.Is($"panelButton('store', '{bed.Id}').parentNode === kept"));
+        Assert.False(page.Is("kept.isConnected"));
+        Assert.True(page.Is($"panelButton('store', '{bed.Id}').disabled"));
+        Assert.Equal(2, page.Count($"{YardList}.querySelectorAll('.pb-row')"));
+    }
+
+    [Fact]
+    public void Taking_the_last_free_spot_greys_every_take_out_that_was_drawn_before()
+    {
+        var game = Yard(out _, out _);
+        var page = new PageScript();
+        page.Open(ViewOf(game));
+        game.FreeSpots = 0;
+
+        page.Run($"window.__slpkgbank.setData({ViewOf(game)})");
+
+        Assert.True(page.Is("panelButton('takeout', 0).disabled"));
+        Assert.Equal(1, page.Count($"{BankList}.querySelectorAll('.pb-notice')"));
+    }
+
+    [Fact]
+    public void New_words_from_a_switch_of_the_game_language_redraw_the_panel_even_with_the_same_view()
+    {
+        var view = ViewOf(new FakeGame());
+        var page = new PageScript();
+        page.Open(view);
+
+        Assert.Contains("No packages in the yard.", page.Text(Panel));
+
+        page.Run(PageWords.Script(isChinese: true) + $"window.__slpkgbank.setData({view})");
+
+        Assert.Contains("院子里没有包裹。", page.Text(Panel));
+        Assert.DoesNotContain("No packages in the yard.", page.Text(Panel));
+    }
+
     [Fact]
     public void A_click_menu_the_game_draws_again_gets_its_bank_entry_again()
     {

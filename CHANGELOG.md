@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- The game runs smoother with the mod installed. It now does almost no work while the bank panel, the build shop and a package's click menu are all closed, and less while they are open.
+- The bank panel updates faster when a package is banked or taken out.
+- Less of a stutter the first time the bank panel opens.
+
 ## 0.3.1
 
 - The Bank entry in a package's click menu shows with the menu's other buttons, instead of a moment after them.

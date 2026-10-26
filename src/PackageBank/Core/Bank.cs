@@ -40,6 +40,16 @@ public abstract record BankRead
 /// <summary>The game side of the bank.</summary>
 public interface IBankGame
 {
+    /// <summary>Where the player is and which bank screens are open: cheap enough for every refresh.</summary>
+    BankState State();
+
+    /// <summary>
+    /// A number that changes whenever anything Read would return changes (a save loaded, a package moved, banked,
+    /// shown or dyed, the shop's list, the click menu, the icons arriving), so an unchanged print skips the read. Asked
+    /// only at home.
+    /// </summary>
+    long Print();
+
     BankRead Read();
 
     /// <summary>

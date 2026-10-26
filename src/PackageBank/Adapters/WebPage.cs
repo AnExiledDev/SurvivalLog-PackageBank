@@ -13,34 +13,44 @@ namespace PackageBank.Adapters;
 /// package list. The web view can reload at any time and lose the script, so it is checked for every couple of
 /// seconds and put back when the page says it is missing.
 /// </summary>
-internal sealed class WebPage
+internal sealed class WebPage : IBankPage
 {
     private const float CheckSeconds = 2f;
     private const string ScriptResource = "PackageBank.page.js";
     private const string NoScriptReply = "window.vuplex&&window.vuplex.postMessage('" + PageCommand.Prefix + "noscript')";
+    private const string Probe = "window.__slpkgbank||" + NoScriptReply;
+    private const string CallStart = "window.__slpkgbank?window.__slpkgbank.";
+    private const string CallEnd = ":" + NoScriptReply;
 
     private readonly Action<string> _log;
     private string? _script;
     private float _nextCheckAt;
     private bool _hasReportedRunFailure;
+    private bool? _wordsSentAs;
 
     public WebPage(Action<string> log)
     {
         _log = log;
     }
 
+    /// <summary>A tiny probe every couple of seconds; the script goes again only when the page answers that it lost it.</summary>
     public void KeepInstalled(float now)
     {
         if (now < _nextCheckAt) return;
 
         _nextCheckAt = now + CheckSeconds;
-        Run("window.__slpkgbank||" + NoScriptReply);
+        Run(Probe);
     }
 
     public void Install()
     {
+        _wordsSentAs = null;
+
         if (Run(Script())) _log("page script sent to the web UI");
     }
+
+    /// <summary>The page reloaded and lost its words with everything else.</summary>
+    public void Reloaded() => _wordsSentAs = null;
 
     public void Open(string viewJson) => Call($"open({viewJson})");
 
@@ -57,8 +67,22 @@ internal sealed class WebPage
     /// <summary>What the build shop's package list draws the bank from, or null to take the bank out of the shop.</summary>
     public bool Shop(string? viewJson) => Call($"shop({viewJson ?? "null"})");
 
-    /// <summary>Every call hands the page its words first, so a switch of the game's language shows at the next redraw.</summary>
-    private bool Call(string expression) => Run($"{PageWords.Script(GameLanguage.IsChinese())}window.__slpkgbank?window.__slpkgbank.{expression}:{NoScriptReply}");
+    /// <summary>
+    /// The page keeps its words, so they go only with the first call after a load and after a switch of the game's
+    /// language, ahead of that call, so the call is drawn in them.
+    /// </summary>
+    private bool Call(string expression)
+    {
+        var isChinese = GameLanguage.IsChinese();
+        var needsWords = _wordsSentAs != isChinese;
+        var call = CallStart + expression + CallEnd;
+
+        if (!Run(needsWords ? PageWords.Script(isChinese) + call : call)) return false;
+
+        if (needsWords) _wordsSentAs = isChinese;
+
+        return true;
+    }
 
     private bool Run(string javaScript)
     {

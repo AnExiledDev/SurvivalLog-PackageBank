@@ -14,6 +14,7 @@ namespace PackageBank.Adapters;
 internal static class InputGate
 {
     private static bool _isPanelOpen;
+    private static bool _isBlocking;
     private static int _blockedThroughFrame = -1;
     private static bool _hasRoutedAClick;
     private static Action<string> _log = _ => { };
@@ -25,12 +26,17 @@ internal static class InputGate
         Patch(harmony, typeof(WebUILayer), "ValidateRaycast", postfix: nameof(RouteClicksToPanel), done: "clicks go to the panel while it is open", consequence: "clicks on the panel may fall through to the game");
     }
 
-    public static void PanelOpened() => _isPanelOpen = true;
+    public static void PanelOpened()
+    {
+        _isPanelOpen = true;
+        _isBlocking = true;
+    }
 
     /// <summary>Keeps hotkeys blocked through the next frame so the key that closed the panel (Esc) is not seen by the game too.</summary>
     public static void PanelClosed()
     {
         _isPanelOpen = false;
+        _isBlocking = true;
         _blockedThroughFrame = Time.frameCount + 1;
     }
 
@@ -50,7 +56,16 @@ internal static class InputGate
         }
     }
 
-    private static bool SkipWhileBlocked() => !(_isPanelOpen || Time.frameCount <= _blockedThroughFrame);
+    /// <summary>Runs before the game's hotkeys every frame, so with the panel shut and no close to finish it reads only a flag.</summary>
+    private static bool SkipWhileBlocked()
+    {
+        if (!_isBlocking) return true;
+        if (_isPanelOpen || Time.frameCount <= _blockedThroughFrame) return false;
+
+        _isBlocking = false;
+
+        return true;
+    }
 
     private static void RouteClicksToPanel(ref bool __result)
     {

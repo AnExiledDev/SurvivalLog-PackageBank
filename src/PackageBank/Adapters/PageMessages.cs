@@ -15,6 +15,7 @@ namespace PackageBank.Adapters;
 internal static class PageMessages
 {
     private static readonly ConcurrentQueue<PageCommand> Queue = new();
+    private static readonly PageCommand Nothing = new PageCommand.Unknown("");
     private static Action<string> _log = _ => { };
     private static int _hasReportedFailure;
 
@@ -42,7 +43,7 @@ internal static class PageMessages
             return true;
         }
 
-        command = new PageCommand.Unknown("");
+        command = Nothing;
 
         return false;
     }

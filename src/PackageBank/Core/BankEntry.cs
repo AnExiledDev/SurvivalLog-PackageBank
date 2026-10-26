@@ -48,7 +48,11 @@ public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small
 }
 
 /// <summary>What the save's counters say the bank holds.</summary>
-public sealed record BankContents(IReadOnlyList<BankEntry> Entries, BankBonus Bonus);
+public sealed record BankContents(IReadOnlyList<BankEntry> Entries, BankBonus Bonus)
+{
+    /// <summary>The same entries in the same order and the same bonus: a re-read of the counters that changed nothing the bank shows.</summary>
+    public bool SameAs(BankContents other) => Bonus == other.Bonus && Entries.SequenceEqual(other.Entries);
+}
 
 /// <summary>
 /// The bank in the save's own counters (whole numbers by name), so it is saved, loaded and cleared with the save:

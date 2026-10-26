@@ -15,7 +15,8 @@ internal static class MenuOpening
     private static Action<string> _log = _ => { };
     private static bool _hasReportedFailure;
 
-    public static void Apply(Harmony harmony, Action<long> onOpened, Action<string> log)
+    /// <summary>False when the hook could not go in; the session then looks for the menu every frame instead.</summary>
+    public static bool Apply(Harmony harmony, Action<long> onOpened, Action<string> log)
     {
         _onOpened = onOpened;
         _log = log;
@@ -26,10 +27,14 @@ internal static class MenuOpening
                 AccessTools.Method(typeof(Ac_SelectMenu_Open), nameof(Ac_SelectMenu_Open.SendAction)),
                 postfix: new HarmonyMethod(typeof(MenuOpening), nameof(Opened)));
             log("the Bank entry is sent as the click menu opens");
+
+            return true;
         }
         catch (Exception ex)
         {
             log($"could not hook Ac_SelectMenu_Open.SendAction, the Bank entry may show a moment after the menu: {ex.Message}");
+
+            return false;
         }
     }
 

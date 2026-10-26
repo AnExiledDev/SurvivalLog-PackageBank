@@ -34,6 +34,8 @@ internal sealed class PageScript
 
     public int Count(string expression) => (int)_engine.Evaluate($"({expression}).length").AsNumber();
 
+    public int Number(string expression) => (int)_engine.Evaluate($"Number({expression})").AsNumber();
+
     /// <summary>One run of the script's 400 ms page check.</summary>
     public void Poll() => Run("poll()");
 

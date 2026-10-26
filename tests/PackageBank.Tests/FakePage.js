@@ -54,6 +54,23 @@ var FakeElement = class {
 
   get firstChild() { return this.children.length ? this.children[0] : null; }
 
+  get nextSibling() {
+    if (!this.parentElement) return null;
+
+    var siblings = this.parentElement.children;
+
+    return siblings[siblings.indexOf(this) + 1] || null;
+  }
+
+  // In a document: its topmost ancestor is a document's head or body.
+  get isConnected() {
+    var top = this;
+
+    while (top.parentElement) top = top.parentElement;
+
+    return !!top.isDocumentRoot;
+  }
+
   get className() { return this.classes.join(' '); }
 
   set className(value) { this.classes = String(value).split(' ').filter(function (name) { return name !== ''; }); }
@@ -149,6 +166,8 @@ var FakeElement = class {
   }
 
   querySelectorAll(selector) {
+    searches++;
+
     return descendantsOf([this]).filter(function (element) { return element.matches(selector); });
   }
 
@@ -156,6 +175,21 @@ var FakeElement = class {
     return this.querySelectorAll(selector)[0] || null;
   }
 };
+
+// Every search of a page the script makes (a selector, an id, or setting up a live list), so a test can see that a
+// page check with nothing to do searches nothing. Reset it right before the call being measured.
+var searches = 0;
+
+// A list the browser keeps up to date, as getElementsByTagName and getElementsByClassName return: made once, it is
+// read again on every access, and reading it is not a search.
+function liveList(roots, test) {
+  function find() { return descendantsOf(roots).filter(test); }
+
+  return {
+    get length() { return find().length; },
+    item: function (index) { return find()[index] || null; }
+  };
+}
 
 // Compound selectors of a tag, classes, ids and attributes ("iframe", ".dm-hud-btn", "[data-act]"); the script uses
 // nothing else.
@@ -197,6 +231,20 @@ var FakeDocument = class {
   constructor() {
     this.head = new FakeElement('head');
     this.body = new FakeElement('body');
+    this.head.isDocumentRoot = true;
+    this.body.isDocumentRoot = true;
+  }
+
+  getElementsByTagName(tagName) {
+    searches++;
+
+    return liveList([this.head, this.body], function (element) { return element.tagName === tagName; });
+  }
+
+  getElementsByClassName(name) {
+    searches++;
+
+    return liveList([this.head, this.body], function (element) { return element.classList.contains(name); });
   }
 
   createElement(tagName) { return new FakeElement(tagName); }
@@ -214,10 +262,14 @@ var FakeDocument = class {
   createDocumentFragment() { return new FakeElement('#fragment'); }
 
   getElementById(id) {
+    searches++;
+
     return descendantsOf([this.head, this.body]).filter(function (element) { return element.id === id; })[0] || null;
   }
 
   querySelectorAll(selector) {
+    searches++;
+
     return descendantsOf([this.head, this.body]).filter(function (element) { return element.matches(selector); });
   }
 

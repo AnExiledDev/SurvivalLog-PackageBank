@@ -323,24 +323,69 @@
     return href.slice(0, href.lastIndexOf('/') + 1) + path;
   }
 
+  // Every card, row, heading and note the last render drew, by a key made of everything it was drawn from, so a new
+  // view reuses what did not change and builds only what did. New words (a switch of the game's language) drop them all.
+  var drawn = { words: null, nodes: {} };
+  var drawing = null;
+
+  function keyed(key, build) {
+    var node = drawn.nodes[key] || build();
+
+    drawing[key] = node;
+
+    return node;
+  }
+
+  // Puts exactly these nodes in the parent, in this order, moving only the ones out of place. The list is never
+  // emptied on the way, so its scroll position stays where the player left it.
+  function fill(parent, nodes) {
+    var kept = new Set(nodes);
+
+    for (var child = parent.firstChild; child; ) {
+      var next = child.nextSibling;
+
+      if (!kept.has(child)) parent.removeChild(child);
+
+      child = next;
+    }
+
+    var at = parent.firstChild;
+
+    nodes.forEach(function (node) {
+      if (node === at) at = at.nextSibling;
+      else parent.insertBefore(node, at);
+    });
+  }
+
+  // Writing the same text again still swaps the text node, so it is left alone when it is already right.
+  function setText(node, text) {
+    if (node.textContent !== text) node.textContent = text;
+  }
+
   function render() {
     var data = state.data;
+    var words = window.__slpkgbankWords || ENGLISH;
 
     if (state.filter && !sizeOf(state.filter)) state.filter = null;
 
-    ui.title.textContent = say('title');
-    ui.sub.textContent = say('counts', data.home.length, data.bank.length);
+    if (drawn.words !== words) drawn = { words: words, nodes: {} };
+
+    drawing = {};
+    setText(ui.title, say('title'));
+    setText(ui.sub, say('counts', data.home.length, data.bank.length));
     renderShelves(data);
-    ui.homeTitle.textContent = say('inYard');
-    ui.homeCount.textContent = String(data.home.length);
-    ui.bankTitle.textContent = say('inBankTitle');
-    ui.bankCount.textContent = String(data.bank.length);
-    ui.spots.textContent = data.spots === 1 ? say('spotFree') : say('spotsFree', data.spots);
+    setText(ui.homeTitle, say('inYard'));
+    setText(ui.homeCount, String(data.home.length));
+    setText(ui.bankTitle, say('inBankTitle'));
+    setText(ui.bankCount, String(data.bank.length));
+    setText(ui.spots, data.spots === 1 ? say('spotFree') : say('spotsFree', data.spots));
     ui.spots.className = 'pb-spots' + (data.spots > 0 ? '' : ' pb-bad');
-    renderList(ui.homeList, data.home, homeRow, homeNote, null, 'emptyHome', 'emptyHomeHint');
-    renderList(ui.bankList, data.bank, bankRow, null, bankNotice(data), 'emptyBank', 'emptyBankHint');
+    renderList('h', ui.homeList, data.home, homeRow, homeNote, null, 'emptyHome', 'emptyHomeHint');
+    renderList('b', ui.bankList, data.bank, bankRow, null, data.takeWhy && data.bank.length > 0 ? data.takeWhy : null, 'emptyBank', 'emptyBankHint');
     renderFilter();
-    ui.keys.textContent = say('escClose');
+    setText(ui.keys, say('escClose'));
+    drawn.nodes = drawing;
+    drawing = null;
   }
 
   function sizeOf(key) {
@@ -354,23 +399,26 @@
   // One card per shelf with a pip for each banked package. A press shows only that shelf in both lists; a second
   // press shows everything again.
   function renderShelves(data) {
-    ui.shelves.textContent = '';
+    fill(ui.shelves, data.sizes.map(function (size) {
+      return keyed('s|' + JSON.stringify(size) + '|' + (state.filter === size.key), function () { return shelfCard(size); });
+    }));
+  }
 
-    data.sizes.forEach(function (size) {
-      var card = el('div', 'pb-shelf' + (state.filter === size.key ? ' pb-on' : '') + (isFull(size) ? ' pb-full' : ''));
-      var top = el('div', 'pb-shelf-top');
-      var count = el('span', 'pb-count', String(size.used));
-      card.setAttribute('data-act', 'filter');
-      card.setAttribute('data-args', size.key);
-      top.appendChild(el('span', 'pb-shelf-name', say(size.key)));
+  function shelfCard(size) {
+    var card = el('div', 'pb-shelf' + (state.filter === size.key ? ' pb-on' : '') + (isFull(size) ? ' pb-full' : ''));
+    var top = el('div', 'pb-shelf-top');
+    var count = el('span', 'pb-count', String(size.used));
+    card.setAttribute('data-act', 'filter');
+    card.setAttribute('data-args', size.key);
+    top.appendChild(el('span', 'pb-shelf-name', say(size.key)));
 
-      if (size.cap != null) count.appendChild(el('span', 'pb-cap', ' / ' + size.cap));
+    if (size.cap != null) count.appendChild(el('span', 'pb-cap', ' / ' + size.cap));
 
-      top.appendChild(count);
-      card.appendChild(top);
-      card.appendChild(meter(size));
-      ui.shelves.appendChild(card);
-    });
+    top.appendChild(count);
+    card.appendChild(top);
+    card.appendChild(meter(size));
+
+    return card;
   }
 
   function meter(size) {
@@ -409,39 +457,47 @@
   }
 
   // Both lists are grouped by shelf, in the shelf cards' order, so no row needs its own size badge.
-  function renderList(list, items, row, groupNote, notice, emptyKey, hintKey) {
-    var scroll = list.scrollTop;
-    list.textContent = '';
-
+  // A row's key is the list it is in, its item as the view sent it, and what else its look depends on (rowKey).
+  function renderList(prefix, list, items, row, groupNote, noticeWhy, emptyKey, hintKey) {
     if (items.length === 0) {
-      list.appendChild(empty(say(emptyKey), say(hintKey)));
+      fill(list, [keyed(prefix + '|empty', function () { return empty(say(emptyKey), say(hintKey)); })]);
 
       return;
     }
 
-    var fragment = document.createDocumentFragment();
-    var shown = 0;
+    var nodes = [];
 
-    if (notice) fragment.appendChild(notice);
+    if (noticeWhy) nodes.push(keyed(prefix + '|notice|' + noticeWhy, function () { return bankNotice(noticeWhy); }));
 
     groupKeys(items).forEach(function (key) {
       if (state.filter && key !== state.filter) return;
 
       var group = items.filter(function (item) { return item.size === key; });
-      var title = el('div', 'pb-grp', key ? say(key) : '');
       var note = groupNote ? groupNote(key) : '';
 
-      if (note) title.appendChild(el('span', 'pb-grp-why', note));
-
-      fragment.appendChild(title);
-      group.forEach(function (item) { fragment.appendChild(row(item)); });
-      shown += group.length;
+      nodes.push(keyed(prefix + '|group|' + key + '|' + note, function () { return groupTitle(key, note); }));
+      group.forEach(function (item) {
+        nodes.push(keyed(prefix + '|row|' + JSON.stringify(item) + '|' + rowKey(item), function () { return row(item); }));
+      });
     });
 
-    if (shown === 0) fragment.appendChild(empty(say('emptyShelf', say(state.filter)), null));
+    if (nodes.length === (noticeWhy ? 1 : 0)) nodes.push(keyed(prefix + '|none|' + state.filter, function () { return empty(say('emptyShelf', say(state.filter)), null); }));
 
-    list.appendChild(fragment);
-    list.scrollTop = scroll;
+    fill(list, nodes);
+  }
+
+  // The rest of what a row is drawn from: a yard row hides its reason under a full shelf's note, a bank row is greyed
+  // with no free spot.
+  function rowKey(item) {
+    return isFull(sizeOf(item.size)) + '|' + state.data.takeWhy;
+  }
+
+  function groupTitle(key, note) {
+    var title = el('div', 'pb-grp', key ? say(key) : '');
+
+    if (note) title.appendChild(el('span', 'pb-grp-why', note));
+
+    return title;
   }
 
   // The view's shelves in its order, then any shelf a package names that the view does not list, so nothing is hidden.
@@ -470,12 +526,10 @@
   }
 
   // With no free spot every Take out is greyed for the same reason, so it is said once, above the list.
-  function bankNotice(data) {
-    if (!data.takeWhy || data.bank.length === 0) return null;
-
+  function bankNotice(why) {
     var node = el('div', 'pb-notice');
     node.appendChild(svgIcon(document, null, WARN_PATH));
-    node.appendChild(el('span', null, say(data.takeWhy === 'noSpot' ? 'noSpotNote' : data.takeWhy)));
+    node.appendChild(el('span', null, say(why === 'noSpot' ? 'noSpotNote' : why)));
 
     return node;
   }
@@ -589,26 +643,37 @@
     { pattern: /SelectMenu\.html/, patch: patchMenu }
   ];
 
-  function pageFor(src) {
-    return PAGES.filter(function (page) { return page.pattern.test(src); })[0] || null;
+  // The root's iframes, kept up to date by the browser, so a check never has to search the root document for them.
+  var frames = document.getElementsByTagName('iframe');
+
+  // Which of the bank's pages an iframe shows, worked out again only when its address changes.
+  function pageFor(frame) {
+    var src = frame.src || '';
+
+    if (frame.pbSrc !== src) {
+      frame.pbSrc = src;
+      frame.pbPage = PAGES.filter(function (page) { return page.pattern.test(src); })[0] || null;
+    }
+
+    return frame.pbPage;
   }
 
   // The game's pages are same-origin iframes, so their documents can be reached from here; polled because the game
   // creates and drops those iframes whenever it likes, the shop redraws its list on every Buy and Refund, and the click
-  // menu redraws its entries every time it opens.
+  // menu redraws its entries every time it opens. Each page's patch returns at once when what it added is still there
+  // and nothing it is drawn from changed.
   function patchPages() {
-    var frames = document.querySelectorAll('iframe');
-
     for (var i = 0; i < frames.length; i++) {
-      var src = frames[i].src || '';
-      var page = pageFor(src);
+      var frame = frames.item(i);
+      var src = frame.src || '';
+      var page = pageFor(frame);
 
       if (!page) continue;
 
       var doc = null;
 
       try {
-        doc = frames[i].contentDocument;
+        doc = frame.contentDocument;
       } catch (e) {}
 
       if (!doc) {
@@ -629,11 +694,21 @@
 
   // First in the tool column: the column is anchored at the bottom, so the first child sits on top and the game's own
   // buttons do not move. The column hides itself in build mode, and the button with it.
+  // The button placed is kept on the page's document, so a check with it still in the column searches nothing.
   function placeHudButton(doc, build) {
-    var column = doc.querySelector('.vertical-tools');
-    var existing = doc.querySelector('.' + HUD_CLASS);
+    var existing = doc.pbHudButton && doc.pbHudButton.isConnected ? doc.pbHudButton : null;
 
-    if (!column || !state.isLive) {
+    if (!state.isLive) {
+      if (existing) existing.remove();
+
+      return;
+    }
+
+    if (existing && existing.parentNode && existing.parentNode.classList.contains('vertical-tools')) return;
+
+    var column = doc.querySelector('.vertical-tools');
+
+    if (!column) {
       if (existing) existing.remove();
 
       return;
@@ -646,6 +721,7 @@
 
     node.setAttribute('data-etk-dock', DOCK_ORDER);
     column.insertBefore(node, column.firstChild);
+    doc.pbHudButton = node;
 
     if (!hasReportedHudPlaced) send('diag|HUD button placed in the tool column');
     hasReportedHudPlaced = true;
@@ -690,15 +766,24 @@
   // Shown while the game's click menu is open on a yard package the bank lists, last in its main column. Greyed with
   // the reason in the menu's own hover tip when the bank would refuse it. The press names no package: the plugin banks
   // whatever the menu is open on at that moment.
+  // With the menu not on a yard package (most of the time) this searches nothing: the entry placed is kept on the
+  // page's document.
   function patchMenu(doc) {
     watchMenu(doc);
 
     var why = state.menu ? state.menu.why || '' : null;
+    var existing = doc.pbMenuEntry && doc.pbMenuEntry.isConnected ? doc.pbMenuEntry : null;
+
+    if (why === null) {
+      if (existing) existing.remove();
+
+      return;
+    }
+
     var container = doc.getElementById('menu-container');
-    var existing = doc.querySelector('.' + MENU_CLASS);
     var hasGameEntries = container != null && container.querySelectorAll('.menu-btn').length > (existing ? 1 : 0);
 
-    if (why === null || !hasGameEntries) {
+    if (!hasGameEntries) {
       if (existing) existing.remove();
 
       return;
@@ -707,7 +792,8 @@
     if (existing && existing.getAttribute('data-why') === why) return;
     if (existing) existing.remove();
 
-    (container.querySelector('.menu-col') || container).appendChild(menuEntry(doc, why));
+    doc.pbMenuEntry = menuEntry(doc, why);
+    (container.querySelector('.menu-col') || container).appendChild(doc.pbMenuEntry);
   }
 
   // The menu draws its entries a moment after it opens; adding the Bank entry the moment they appear, rather than at
@@ -794,25 +880,62 @@
   // While the shop's view is here, every game row the bank can take gets a Bank button beside its Refund button, and
   // the banked packages are listed under the rows. Rows are matched by their place in the list, which is the index the
   // shop itself refunds by. Without the view everything the bank added comes back out.
+  //
+  // What was done is kept on the page's document (doc.pbShop): the view's version, the rows as they were, the button put
+  // in each, and the bank section. A check that finds all of it unchanged returns without searching the page.
   function patchShop(doc) {
     var data = state.shop;
-    var rows = doc.querySelectorAll('.package-item');
-    var section = doc.getElementById(SHOP_BANK_ID);
 
     if (!data || !doc.body) {
-      rows.forEach(function (row) { removeAll(row.querySelectorAll('.' + SHOP_BUTTON_CLASS)); });
-
-      if (section) section.remove();
+      unpatchShop(doc);
 
       return;
     }
 
+    if (isShopPatched(doc)) return;
+
+    var rows = doc.querySelectorAll('.package-item');
+    var section = doc.getElementById(SHOP_BANK_ID);
+    var buttons = [];
+
     addShopStyle(doc);
-    rows.forEach(function (row, index) { patchShopRow(doc, row, rowFor(data, index)); });
-    placeShopBank(doc, section, rows);
+    rows.forEach(function (row, index) { buttons.push(patchShopRow(doc, row, rowFor(data, index))); });
+    doc.pbShopRows = doc.pbShopRows || doc.getElementsByClassName('package-item');
+    doc.pbShop = { version: shopVersion, rows: Array.prototype.slice.call(rows), buttons: buttons, section: placeShopBank(doc, section, rows) };
 
     if (!hasReportedShopPatched) send('diag|bank added to the build shop');
     hasReportedShopPatched = true;
+  }
+
+  // Nothing to take out of a shop page the bank never added to.
+  function unpatchShop(doc) {
+    if (!doc.pbShop) return;
+
+    doc.pbShop = null;
+    removeAll(doc.querySelectorAll('.' + SHOP_BUTTON_CLASS));
+
+    var section = doc.getElementById(SHOP_BANK_ID);
+
+    if (section) section.remove();
+  }
+
+  // The same view, the same rows in the same order, each button still in its row, and the bank section still last
+  // under the rows.
+  function isShopPatched(doc) {
+    var done = doc.pbShop;
+    var rows = doc.pbShopRows;
+
+    if (!done || done.version !== shopVersion || !done.section || !done.section.isConnected) return false;
+    if (rows.length !== done.rows.length) return false;
+
+    for (var i = 0; i < rows.length; i++) {
+      if (rows.item(i) !== done.rows[i]) return false;
+      if (done.buttons[i] && done.buttons[i].parentNode !== done.rows[i]) return false;
+    }
+
+    var list = done.section.parentNode;
+
+    return (rows.length === 0 || list === done.rows[0].parentNode) && list.children[list.children.length - 1] === done.section;
   }
 
   function rowFor(data, index) {
@@ -825,13 +948,15 @@
     if (!entry) {
       if (existing) existing.remove();
 
-      return;
+      return null;
     }
 
     var node = existing || shopBankButton(doc, row);
     node.textContent = say('bank');
     node.setAttribute('data-index', String(entry.index));
     node.disabled = !!entry.why;
+
+    return node;
   }
 
   // Placed straight after the Refund button, the row's last child.
@@ -854,17 +979,17 @@
   function placeShopBank(doc, section, rows) {
     var list = rows.length > 0 ? rows[0].parentNode : doc.querySelector('.left-content-wrapper');
 
-    if (!list) return;
+    if (!list) return null;
 
     if (section && section.getAttribute('data-version') === String(shopVersion)) {
       if (section.parentNode !== list || list.children[list.children.length - 1] !== section) list.appendChild(section);
 
-      return;
+      return section;
     }
 
     if (section) section.remove();
 
-    list.appendChild(shopBank(doc));
+    return list.appendChild(shopBank(doc));
   }
 
   function shopBank(doc) {
@@ -924,15 +1049,18 @@
   function watchForFrames() {
     if (typeof MutationObserver === 'undefined') return;
 
+    // Any change in the root (the bank's own panel included) lands here, so the check walks the kept list of iframes
+    // and searches nothing.
     new MutationObserver(function () {
-      var frames = document.querySelectorAll('iframe');
       var isNew = false;
 
       for (var i = 0; i < frames.length; i++) {
-        if (frames[i].pbLoadWatched) continue;
+        var frame = frames.item(i);
 
-        frames[i].pbLoadWatched = true;
-        frames[i].addEventListener('load', patchPagesSafely);
+        if (frame.pbLoadWatched) continue;
+
+        frame.pbLoadWatched = true;
+        frame.addEventListener('load', patchPagesSafely);
         isNew = true;
       }
 
