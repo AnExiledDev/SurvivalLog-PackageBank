@@ -16,9 +16,8 @@
 
 - Defenses can be banked: the free starter Sandbags, Spike Barriers and the other defense packages go on a new Defenses shelf, 4 by default. New setting: `DefenseSlots`.
 - The Bank entry in a yard package's menu now shows as soon as the menu opens, instead of up to a second later.
-- With Exiled's Toolkit 0.6.0 or later, the HUD button takes its place in the Toolkit's tidy layout of the tool buttons.
-
-- After a game update, a hook that can no longer be placed is logged as an error, so the Mod Manager can mark the mod as maybe needing an update.
+- With Exiled's Toolkit 0.6.0 or later, the HUD button lines up neatly with other mods' buttons.
+- After a game update, Mod Manager can tell you if this mod may need an update.
 
 ## 0.1.0
 
