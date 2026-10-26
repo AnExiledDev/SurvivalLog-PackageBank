@@ -86,6 +86,17 @@ internal sealed class BankSession
         return true;
     }
 
+    /// <summary>
+    /// Called by the game's own menu-open call, before the game sends the menu to the web view, so the page has the Bank
+    /// entry's data by the time the menu's buttons are drawn.
+    /// </summary>
+    public void MenuOpened(long id)
+    {
+        GameMenu.Opening(id);
+        _menuOpenOn = GameMenu.OpenOn();
+        Refresh();
+    }
+
     /// <summary>One command that throws must not cost the rest of the frame its commands.</summary>
     private void HandleSafely(PageCommand command)
     {

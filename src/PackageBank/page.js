@@ -918,6 +918,29 @@
     nodes.forEach(function (node) { node.remove(); });
   }
 
+  // A game page in a new iframe is patched, and the click menu watched, as soon as the iframe appears and again when
+  // it loads, not at the next poll; the menu's Bank entry depends on that watcher being in place before the game draws
+  // the menu's buttons.
+  function watchForFrames() {
+    if (typeof MutationObserver === 'undefined') return;
+
+    new MutationObserver(function () {
+      var frames = document.querySelectorAll('iframe');
+      var isNew = false;
+
+      for (var i = 0; i < frames.length; i++) {
+        if (frames[i].pbLoadWatched) continue;
+
+        frames[i].pbLoadWatched = true;
+        frames[i].addEventListener('load', patchPagesSafely);
+        isNew = true;
+      }
+
+      if (isNew) patchPagesSafely();
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  watchForFrames();
   setInterval(patchPagesSafely, 400);
 
   window.__slpkgbank = { open: open, setData: setData, close: close, status: status, live: live, shop: shop };

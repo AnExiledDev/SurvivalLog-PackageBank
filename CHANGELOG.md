@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- The Bank entry in a package's click menu shows with the menu's other buttons, instead of a moment after them.
+
 ## 0.3.0
 
 - A new look for the bank panel, in the warm gold style of the newer mod panels.

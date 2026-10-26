@@ -13,7 +13,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.3.0";
+    private const string Version = "0.3.1";
     private const int MaxSlots = 100;
 
     public override void Load()
@@ -46,6 +46,7 @@ public sealed class Plugin : BasePlugin
         log.Write($"===== Package Bank {Version} started");
         InputGate.Apply(harmony, log.Write);
         PageMessages.Apply(harmony, log.Write);
+        MenuOpening.Apply(harmony, session.MenuOpened, log.Write);
 
         OptionalLive.Watch(() =>
         {

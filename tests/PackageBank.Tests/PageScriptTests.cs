@@ -471,6 +471,21 @@ public class PageScriptTests
     }
 
     [Fact]
+    public void A_click_menu_page_made_after_the_view_arrived_gets_its_bank_entry_as_the_game_draws_it_without_waiting_for_the_page_check()
+    {
+        var game = Yard(out var bed, out _);
+        var page = new PageScript();
+        game.Menu = bed.Id;
+        page.Shop(ViewOf(game));
+        page.Run("frame('https://game.local/UI/SelectMenu/SelectMenu.html'); settle()");
+
+        page.Run("openMenu(['Install', 'Return']); settle()");
+
+        Assert.True(page.Is("menuBank()"));
+        Assert.Equal("Bank", page.Text("menuEntries()[2].querySelector('.menu-btn-text').textContent"));
+    }
+
+    [Fact]
     public void A_click_menu_the_game_draws_again_gets_its_bank_entry_again()
     {
         var game = Yard(out var bed, out _);
