@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3
+
+- The bank panel and its pop-up messages can be drawn bigger or smaller with the UI size setting of Exiled's Toolkit 0.10.0 or newer. A change shows at once, and the panel only grows as far as it still fits on the screen.
+- The HUD button and the Bank buttons in the build shop and the click menu keep the game's size, like the game's own buttons around them.
+- Made for Survival Log 1.1.19611.
+
 ## 0.3.2
 
 - The game runs smoother with the mod installed. It now does almost no work while the bank panel, the build shop and a package's click menu are all closed, and less while they are open.

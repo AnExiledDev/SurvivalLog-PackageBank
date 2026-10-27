@@ -17,6 +17,7 @@ Your yard only has so many package spots. Package Bank gives you somewhere to pu
 [*][b]Story Items[/b]: free one-off packages, such as the Recorder from the hospital, go on their own shelf with no limit.[/*]
 [*][b]Defenses[/b]: sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own, 4 by default.[/*]
 [*][b]Buttons say why not[/b]: a greyed-out button shows the reason, like a full shelf or no free package spot.[/*]
+[*][b]UI size[/b]: with Exiled's Toolkit 0.10.0 or newer, its UI size setting draws the bank panel bigger or smaller, as far as it still fits on the screen.[/*]
 [/list]
 
 [size=5]Hotkeys[/size]
@@ -46,7 +47,7 @@ Works in English and Chinese.
 [list]
 [*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.[/*]
+[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.10.0 or newer, its UI size setting also sizes the bank panel. Without it, settings take effect at the next game start.[/*]
 [/list]
 
 [size=5]Installation[/size]
@@ -87,6 +88,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [*][b]剧情物品[/b]：免费的一次性包裹（例如医院里的记录仪）放在单独的一栏，不限数量。[/*]
 [*][b]防御设施[/b]：沙包、尖刺障碍等防御设施包裹放在单独的一栏，默认 4 个。[/*]
 [*][b]按钮会说明原因[/b]：变灰的按钮会显示原因，例如这一类已存满或没有空的包裹位。[/*]
+[*][b]界面大小[/b]：安装 Exiled's Toolkit 0.10.0 或更新版本后，可以用它的界面大小设置放大或缩小仓库面板，最大放到面板仍能完整显示在屏幕上为止。[/*]
 [/list]
 
 [size=5]快捷键[/size]
@@ -113,7 +115,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [list]
 [*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
-[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效；没装则在下次启动游戏时生效。[/*]
+[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效，0.10.0 或更新版本还能用它的界面大小设置调整仓库面板的大小；没装则在下次启动游戏时生效。[/*]
 [/list]
 
 [size=5]安装[/size]

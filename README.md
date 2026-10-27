@@ -13,6 +13,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Defenses:** sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own.
 - **Buttons say why not:** a greyed-out button shows the reason. A full shelf says `bank full` once on its group in the yard list, no free package spot shows one notice at the top of the bank list, and a package being moved or installed says so under its name.
+- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel and its pop-up messages bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size.
 
 Works in English and Chinese.
 
@@ -30,7 +31,7 @@ Works in English and Chinese.
 
 - Survival Log 1.1.19611. A game update can break it until the mod is updated.
 - [BepInEx for Survival Log](https://www.nexusmods.com/survivallog/mods/12). Install it first.
-- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.
+- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.10.0 or newer, its UI size setting also sizes the bank panel. Without it, settings take effect at the next game start.
 
 ## Install
 
@@ -47,7 +48,7 @@ See [CONFIG.md](CONFIG.md).
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.3.2 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.3.3 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 
