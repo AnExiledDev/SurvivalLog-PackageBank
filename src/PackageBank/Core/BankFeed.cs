@@ -31,9 +31,10 @@ public interface IBankPage
 }
 
 /// <summary>
-/// Keeps the page in step with the game, once a refresh. The full read and the view's JSON are built only while a
-/// screen that shows the bank is open (the panel, the build shop, the click menu) and only when the game's print says
-/// something the view is drawn from changed; every call to the page goes only when what it carries changed.
+/// Keeps the page in step with the game, once a refresh. The full read and the view's JSON are built once ahead of
+/// time at the first refresh at home, then only while a screen that shows the bank is open (the panel, the build shop,
+/// the click menu) and only when the game's print says something the view is drawn from changed; every call to the
+/// page goes only when what it carries changed.
 /// </summary>
 public sealed class BankFeed
 {
@@ -46,6 +47,7 @@ public sealed class BankFeed
     private long _viewPrint;
     private string? _view;
     private bool _isViewForPages;
+    private bool _hasBuiltView;
 
     private string? _shownView;
     private bool? _sentLive;
@@ -104,7 +106,9 @@ public sealed class BankFeed
         NoteLanguage(state.IsChinese);
         SendLive(isHome);
 
-        var view = isHome && (isPanelOpen || state.IsShopOpen || state.Menu != null) ? ViewNow() : null;
+        // The first refresh at home builds the view even with no bank screen open, so the first click menu or build
+        // shop of a session does not run that code, and the game reads behind it, for the first time on its own frame.
+        var view = isHome && (isPanelOpen || state.IsShopOpen || state.Menu != null || !_hasBuiltView) ? ViewNow() : null;
 
         SendShop(view != null && _isViewForPages ? view : null);
 
@@ -120,6 +124,8 @@ public sealed class BankFeed
 
     private string? ViewNow()
     {
+        _hasBuiltView = true;
+
         var print = _game.Print();
 
         if (_hasView && print == _viewPrint) return _view;

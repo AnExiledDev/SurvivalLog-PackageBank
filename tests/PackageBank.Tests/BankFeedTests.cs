@@ -89,18 +89,52 @@ public class BankFeedTests
 
     // ===== Closed screens =====
 
+    /// <summary>
+    /// The first refresh at home reads the bank once ahead of time, so the first click menu of a session does not run
+    /// the read and the view for the first time on its frame. After that, with no screen open, nothing is read.
+    /// </summary>
     [Fact]
-    public void With_no_bank_screen_open_a_refresh_never_reads_the_bank_and_only_the_first_sends()
+    public void With_no_bank_screen_open_the_bank_is_read_once_ahead_of_time_and_only_the_first_refresh_sends()
     {
         var (game, page, feed) = Start();
 
         for (var i = 0; i < 5; i++) feed.Refresh(isPanelOpen: false);
 
-        Assert.Equal(0, game.Reads);
-        Assert.Equal(0, game.Prints);
+        Assert.Equal(1, game.Reads);
+        Assert.Equal(1, game.Prints);
         Assert.Equal(new[] { true }, page.Lives);
         Assert.Equal(new string?[] { null }, page.Shops);
         Assert.Empty(page.Shows);
+    }
+
+    [Fact]
+    public void The_bank_read_ahead_of_time_waits_until_the_player_is_home()
+    {
+        var (game, _, feed) = Start();
+        game.IsNoGame = true;
+        feed.Refresh(isPanelOpen: false);
+        game.IsNoGame = false;
+        game.IsAway = true;
+        feed.Refresh(isPanelOpen: false);
+        Assert.Equal(0, game.Reads);
+
+        game.IsAway = false;
+        feed.Refresh(isPanelOpen: false);
+        feed.Refresh(isPanelOpen: false);
+
+        Assert.Equal(1, game.Reads);
+    }
+
+    /// <summary>The panel opened before any refresh already built the view, so no extra read follows.</summary>
+    [Fact]
+    public void A_panel_opened_first_leaves_nothing_to_read_ahead_of_time()
+    {
+        var (game, _, feed) = Start();
+
+        OpenPanel(feed);
+        feed.Refresh(isPanelOpen: false);
+
+        Assert.Equal(1, game.Reads);
     }
 
     [Fact]

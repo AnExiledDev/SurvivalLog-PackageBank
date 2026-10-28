@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
@@ -13,8 +16,11 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.3.3";
+    private const string Version = "0.3.4";
     private const int MaxSlots = 100;
+    private const string CoreNamespace = "PackageBank.Core";
+    private const string AdaptersNamespace = "PackageBank.Adapters";
+    private const BindingFlags Declared = BindingFlags.DeclaredOnly | BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     public override void Load()
     {
@@ -59,5 +65,36 @@ public sealed class Plugin : BasePlugin
         BankTicker.Session = session;
         BankTicker.Log = log.Write;
         AddComponent<BankTicker>();
+        WarmUpInBackground();
+    }
+
+    /// <summary>
+    /// Compiles the mod's own code on a worker without running it, so the first click menu, shop or panel of a session
+    /// does not compile the read, the view and the page calls on the game's frame. Nothing on this thread touches the game.
+    /// </summary>
+    private static void WarmUpInBackground() =>
+        System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+        {
+            try
+            {
+                foreach (var type in typeof(Plugin).Assembly.GetTypes())
+                {
+                    if (type.Namespace is CoreNamespace or AdaptersNamespace && !typeof(UnityEngine.MonoBehaviour).IsAssignableFrom(type)) Prepare(type);
+                }
+            }
+            catch (Exception)
+            {
+                // Only a head start; the first real use compiles them anyway.
+            }
+        });
+
+    private static void Prepare(Type type)
+    {
+        if (type.ContainsGenericParameters) return;
+
+        foreach (var method in type.GetMethods(Declared))
+        {
+            if (!method.IsAbstract && !method.ContainsGenericParameters) RuntimeHelpers.PrepareMethod(method.MethodHandle);
+        }
     }
 }

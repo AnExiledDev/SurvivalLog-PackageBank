@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4
+
+- Fixed: the game could stutter for a moment the first time you clicked a yard package in a session.
+- Made for Survival Log 1.1.19611.
+
 ## 0.3.3
 
 - The bank panel and its pop-up messages can be drawn bigger or smaller with the UI size setting of Exiled's Toolkit 0.10.0 or newer. A change shows at once, and the panel only grows as far as it still fits on the screen.
