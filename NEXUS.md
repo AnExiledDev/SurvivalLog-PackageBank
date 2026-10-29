@@ -47,13 +47,13 @@ Works in English and Chinese.
 [list]
 [*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]. Install it first.[/*]
-[*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.10.0 or newer, its UI size setting also sizes the bank panel. Without it, settings take effect at the next game start.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.11.0 or newer. Package Bank does not load without it. It shows Package Bank's messages as toasts while the bank panel is closed, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the bank panel.[/*]
 [/list]
 
 [size=5]Installation[/size]
 [list=1]
 [*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
-[*]Optional, to change settings without a restart: install Exiled's Toolkit the same way. Download its zip and extract it into the game folder.[/*]
+[*]Install Exiled's Toolkit the same way. Download its zip and extract it into the game folder.[/*]
 [*]Download the zip from the Files tab.[/*]
 [*]Extract it into the game folder (the folder with [font=Courier New]SurvivalLog.exe[/font]). The zip holds a BepInEx folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
 [code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\PackageBank.dll[/code][/*]
@@ -63,7 +63,7 @@ Works in English and Chinese.
 Take everything out of the bank first, then delete [font=Courier New]PackageBank.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Packages still in the bank are lost once the mod is gone.
 
 [size=5]Configuration[/size]
-To change the size limits or turn them off, edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Without Exiled's Toolkit installed, changes made on the Mods screen take effect at the next game start.
+To change the size limits or turn them off, edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese).
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\package-bank.log[/font].
@@ -115,7 +115,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [list]
 [*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]，请先安装。[/*]
-[*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面修改的设置无需重启游戏即可生效，0.10.0 或更新版本还能用它的界面大小设置调整仓库面板的大小；没装则在下次启动游戏时生效。[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.11.0 或更新版本。没有它本模组不会加载。仓库面板关闭时，它把 Package Bank 的消息显示为弹出通知；它让在 Mod Manager 的「模组」界面修改的设置无需重启即可生效，它的界面大小设置还能调整仓库面板的大小。[/*]
 [/list]
 
 [size=5]安装[/size]
@@ -130,7 +130,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]PackageBank.dll[/font]。卸载前请先把仓库里的包裹全部取出，模组删除后仓库中的包裹会丢失。
 
 [size=5]配置[/size]
-如需修改各尺寸的上限或关闭上限，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。也可以在游戏内 Mod Manager 的「模组」界面修改；没装 Exiled's Toolkit 时，修改在下次启动游戏时生效。
+如需修改各尺寸的上限或关闭上限，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。也可以在游戏内 Mod Manager 的「模组」界面修改。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\package-bank.log[/font]。

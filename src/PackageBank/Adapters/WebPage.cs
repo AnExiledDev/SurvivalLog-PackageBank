@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using ExiledToolkit;
 using PackageBank.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.ReduxUI;
@@ -58,8 +59,18 @@ internal sealed class WebPage : IBankPage
 
     public void Close() => Call("close()");
 
-    /// <summary>A result line: in the panel's footer while it is open, as a toast otherwise.</summary>
-    public void Status(string text) => Call($"status({JsText.Literal(text)})");
+    /// <summary>
+    /// A result line: in the panel's footer while it is open, as an Exiled's Toolkit toast otherwise. The page hears it
+    /// either way, as it frees the button that was pressed.
+    /// </summary>
+    public void Status(string text, bool isPanelOpen, ToastKind kind)
+    {
+        Call($"status({JsText.Literal(text)})");
+
+        if (isPanelOpen || string.IsNullOrEmpty(text)) return;
+
+        Toasts.Show(new ToastRequest(Texts.Source.Pick(GameLanguage.IsChinese()), text) { Kind = kind });
+    }
 
     /// <summary>Whether a game the bank works in is loaded: the HUD button shows only then.</summary>
     public bool Live(bool isLive) => Call($"live({(isLive ? "true" : "false")})");

@@ -1,4 +1,5 @@
 using System;
+using ExiledToolkit;
 using PackageBank.Core;
 using UnityEngine;
 
@@ -235,7 +236,7 @@ internal sealed class BankSession
             _log($"{name} failed: {ex}");
         }
 
-        _page.Status(message);
+        _page.Status(message, _isOpen, message == Texts.Failed.Pick(isChinese) ? ToastKind.Error : ToastKind.Info);
         _feed.Forget();
         Refresh();
     }

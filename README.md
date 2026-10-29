@@ -13,7 +13,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Defenses:** sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own. With Defense Manager 0.9.0 or newer, a banked defense can be installed straight from Defense Manager's panel: it is taken out onto a free package spot and installed.
 - **Buttons say why not:** a greyed-out button shows the reason. A full shelf says `bank full` once on its group in the yard list, no free package spot shows one notice at the top of the bank list, and a package being moved or installed says so under its name.
-- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel and its pop-up messages bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size. With Toolkit 0.11.0 or newer, Package Bank's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
+- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size. With Toolkit 0.11.0 or newer, Package Bank's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 
 Works in English and Chinese.
 
@@ -31,12 +31,13 @@ Works in English and Chinese.
 
 - Survival Log 1.1.19611. A game update can break it until the mod is updated.
 - [BepInEx for Survival Log](https://www.nexusmods.com/survivallog/mods/12). Install it first.
-- Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. With 0.10.0 or newer, its UI size setting also sizes the bank panel. Without it, settings take effect at the next game start.
+- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.11.0 or newer. Package Bank does not load without it. It shows Package Bank's messages as toasts while the bank panel is closed, applies settings changed on the Mod Manager's Mods screen without a restart, and its UI size setting sizes the bank panel.
 
 ## Install
 
 1. Install BepInEx. If no other mods were installed before, start the game once so BepInEx finishes setup, then quit.
 2. Download `PackageBank-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-PackageBank/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/79), and extract it into the game folder (the folder with `SurvivalLog.exe`), merging the folders. `PackageBank.dll` ends up in `BepInEx\plugins\`.
+3. Install Exiled's Toolkit. Download `ExiledToolkit-x.y.z.zip` from [its latest release](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/61), and extract it into the game folder (the folder with `SurvivalLog.exe`).
 
 ## Uninstall
 

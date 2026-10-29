@@ -29,6 +29,9 @@ public static class Texts
     public static readonly Phrase Stored = new("{0} put in the bank.", "{0}已存入仓库。");
     public static readonly Phrase NoSpot = new("No free package spot at home: install, refund or bank a package first.", "家里没有空的包裹位置：请先安装、退还或存入一个包裹。");
     public static readonly Phrase TakenOut = new("{0} taken out of the bank.", "{0}已从仓库取出。");
+    /// <summary>Who a toast is from, on its first line.</summary>
+    public static readonly Phrase Source = new("Package Bank", "包裹仓库");
+
     public static readonly Phrase Failed = new("Package Bank failed, see " + Log + ".", "Package Bank 出错，详见 " + Log + "。");
 
     public static readonly Phrase Large = new("large", "大型");

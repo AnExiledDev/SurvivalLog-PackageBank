@@ -15,7 +15,6 @@
   var SHOP_BANK_ID = 'pb-shop-bank';
   var SHOP_BUTTON_CLASS = 'pb-bank-btn';
   var BUSY_TIMEOUT_MS = 5000;
-  var TOAST_MS = 3500;
   var SVG_NS = 'http://www.w3.org/2000/svg';
   // A storage box with a lid, drawn on the 24-unit grid the game's HUD icons use.
   var BOX_PATH = 'M3 3h18v5H3V3zm2 2v1h14V5H5zM4 9h16v12H4V9zm2 2v8h12v-8H6zm3 1h6v2H9v-2z';
@@ -43,7 +42,6 @@
   // filter: the shelf key both lists are narrowed to, or null for all of them.
   var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null, filter: null };
   var ui = null;
-  var toastTimer = 0;
   var isBusy = false;
   var busyTimer = 0;
   var shopVersion = 0;
@@ -173,8 +171,7 @@
     '.pb-foot{display:flex;align-items:center;gap:14px;font-size:13px;color:#a89a82;border-top:1px solid rgba(220,188,120,.11);padding-top:11px}',
     '.pb-status{flex:1;min-width:0;color:#cbbfa8}',
     '.pb-filter{color:#cbbfa8}',
-    '.pb-show-all{color:#FFC83A;cursor:pointer;text-decoration:underline;margin-left:8px}',
-    '#pb-toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:2147483001;pointer-events:none;display:none;max-width:640px;text-align:center;padding:10px 18px;border-radius:4px;border:1px solid rgba(255,200,58,.55);background:linear-gradient(180deg,#3a3129,#241e18);color:#f0e8d8;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.6)}'
+    '.pb-show-all{color:#FFC83A;cursor:pointer;text-decoration:underline;margin-left:8px}'
   ].join('\n');
 
   function build() {
@@ -218,16 +215,11 @@
     plate.appendChild(foot);
     root.appendChild(plate);
 
-    var toast = el('div');
-    toast.id = 'pb-toast';
-
     document.body.appendChild(root);
-    document.body.appendChild(toast);
 
     // Drawn at the player's UI size (Exiled's Toolkit). The full-screen mask always fills the screen, so the panel on
-    // it is what must fit; the short notice is never shrunk.
+    // it is what must fit.
     uiSize(root, { fit: plate });
-    uiSize(toast, { fit: false });
 
     root.addEventListener('click', onClick);
     // Clicks inside the plate must not reach the game pages underneath; the mask itself closes nothing on purpose.
@@ -237,7 +229,7 @@
     ui = {
       root: root, title: titleText, sub: sub, shelves: shelves, spots: spots, homeTitle: yard.title, homeCount: yard.count,
       bankTitle: bank.title, bankCount: bank.count, homeList: yard.list, bankList: bank.list, status: status,
-      filter: filter, keys: keys, toast: toast
+      filter: filter, keys: keys
     };
   }
 
@@ -600,7 +592,6 @@
     state.isOpen = true;
     state.filter = null;
     ui.status.textContent = '';
-    ui.toast.style.display = 'none';
     ui.root.style.display = 'flex';
     render();
   }
@@ -621,23 +612,8 @@
     build();
     clearBusy();
 
-    if (state.isOpen) {
-      ui.status.textContent = text;
-
-      return;
-    }
-
-    // An empty status only clears the line; as a toast it would be an empty box.
-    if (!text) {
-      ui.toast.style.display = 'none';
-
-      return;
-    }
-
-    ui.toast.textContent = text;
-    ui.toast.style.display = 'block';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { ui.toast.style.display = 'none'; }, TOAST_MS);
+    // With the panel closed the plugin shows the line as an Exiled's Toolkit toast instead.
+    if (state.isOpen) ui.status.textContent = text;
   }
 
   // Whether the player is at home in a loaded game: the HUD button is only shown then.

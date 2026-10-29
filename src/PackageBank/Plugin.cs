@@ -13,11 +13,11 @@ using PackageBank.Core;
 namespace PackageBank;
 
 [BepInPlugin(Guid, "Package Bank", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(OptionalLive.ToolkitGuid, OptionalLive.ToolkitVersion)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.5.0";
+    private const string Version = "0.5.1";
     private const int MaxSlots = 100;
     private const string CoreNamespace = "PackageBank.Core";
     private const string AdaptersNamespace = "PackageBank.Adapters";
@@ -25,8 +25,6 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
-        if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
-
         OptionalUiSize.Bind(Config);
 
         var limitBySize = Config.Bind("Bank", "LimitBySize", true,

@@ -650,10 +650,10 @@ public class PageScriptTests
 
     /// <summary>
     /// The mask fills the screen at any zoom, so a panel measured by the mask would never be shrunk to fit; the panel
-    /// itself is what must fit. The notice is never shrunk. Each is handed once, however often the panel opens.
+    /// itself is what must fit. It is handed once, however often the panel opens.
     /// </summary>
     [Fact]
-    public void The_panel_is_what_must_fit_the_screen_and_the_notice_is_never_shrunk()
+    public void The_panel_is_what_must_fit_the_screen()
     {
         var page = new PageScript();
 
@@ -662,12 +662,22 @@ public class PageScriptTests
         page.Run("window.__slpkgbank.close()");
         page.Open(ViewOf(Yard(out _, out _)));
 
-        Assert.Equal("2", page.Text("handed.length"));
-        Assert.Equal("2", page.Text("handed.filter(function (h) { return h.options.mod === 'PackageBank'; }).length"));
+        Assert.Equal("1", page.Text("handed.length"));
+        Assert.Equal("PackageBank", page.Text("handed[0].options.mod"));
         Assert.Equal("pb-root", page.Text("handed[0].el.id"));
         Assert.True(page.Is("handed[0].options.fit === document.querySelector('.pb-plate')"));
-        Assert.Equal("pb-toast", page.Text("handed[1].el.id"));
-        Assert.True(page.Is("handed[1].options.fit === false"));
+    }
+
+    /// <summary>With the panel closed a result line is the plugin's Toolkit toast, so the page draws no box of its own.</summary>
+    [Fact]
+    public void A_result_with_the_panel_closed_draws_nothing_on_the_page()
+    {
+        var page = new PageScript();
+
+        page.Run("window.__slpkgbank.status('Stored 2 packages')");
+
+        Assert.False(page.Is("document.getElementById('pb-toast')"));
+        Assert.False(page.Is("document.body.textContent.indexOf('Stored 2 packages') >= 0"));
     }
 
     /// <summary>The Toolkit drops a panel taken out of its page, so the panel drawn again in its place must be handed again.</summary>
@@ -678,12 +688,12 @@ public class PageScriptTests
 
         page.Run(FakeUi);
         page.Open(ViewOf(Yard(out _, out _)));
-        page.Run("document.getElementById('pb-root').remove(); document.getElementById('pb-toast').remove()");
+        page.Run("document.getElementById('pb-root').remove()");
         page.Open(ViewOf(Yard(out _, out _)));
 
-        Assert.Equal("4", page.Text("handed.length"));
-        Assert.True(page.Is("handed[2].el !== handed[0].el && handed[2].el === document.getElementById('pb-root')"));
-        Assert.True(page.Is("handed[2].options.fit === document.querySelector('.pb-plate')"));
+        Assert.Equal("2", page.Text("handed.length"));
+        Assert.True(page.Is("handed[1].el !== handed[0].el && handed[1].el === document.getElementById('pb-root')"));
+        Assert.True(page.Is("handed[1].options.fit === document.querySelector('.pb-plate')"));
     }
 
     /// <summary>The Toolkit's script can load after this one; the panel waits in the list it reads when it starts.</summary>
@@ -694,7 +704,7 @@ public class PageScriptTests
 
         page.Open(ViewOf(Yard(out _, out _)));
 
-        Assert.Equal("2", page.Text("window.__exiledUiWait.length"));
+        Assert.Equal("1", page.Text("window.__exiledUiWait.length"));
         Assert.Equal("pb-root", page.Text("window.__exiledUiWait[0][0].id"));
         Assert.True(page.Is("window.__exiledUiWait[0][1].fit === document.querySelector('.pb-plate')"));
     }
