@@ -235,6 +235,17 @@ internal sealed class GameBank : IBankGame
         bag.DyeSlot = dye;
     }
 
+    /// <summary>The bank's entries, empty with no save loaded. Cheap: the counters are read again only when they changed.</summary>
+    public IReadOnlyList<BankEntry> Entries()
+    {
+        var counters = Counters();
+
+        return counters == null ? Array.Empty<BankEntry>() : Contents(counters).Entries;
+    }
+
+    /// <summary>How many yard package spots are empty, 0 with no game loaded.</summary>
+    public int FreeSpots() => Build()?.GetFreePackagePointCount() ?? 0;
+
     /// <summary>Where the player is and which screens are open, with no read of the yard or the bank.</summary>
     private BankState ReadState(bool isChinese)
     {

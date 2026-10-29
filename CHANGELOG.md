@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Defense Manager 0.9.0 can install defense packages straight from the bank: pick an empty yard square in its panel and a banked defense, and it is taken out onto a free package spot and installed.
+- Made for Survival Log 1.1.19611.
+
 ## 0.4.0
 
 - New: `UiScale` under Interface sets the size of Package Bank's own windows on their own, from 75% to 200%, whatever Exiled's Toolkit's UI size is. At 0, the default, they follow the Toolkit's. Needs Exiled's Toolkit 0.11.0 or newer.

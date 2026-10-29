@@ -7,6 +7,7 @@ using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using PackageBank.Adapters;
+using PackageBank.Api;
 using PackageBank.Core;
 
 namespace PackageBank;
@@ -16,7 +17,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.4.0";
+    private const string Version = "0.5.0";
     private const int MaxSlots = 100;
     private const string CoreNamespace = "PackageBank.Core";
     private const string AdaptersNamespace = "PackageBank.Adapters";
@@ -49,7 +50,10 @@ public sealed class Plugin : BasePlugin
             new AcceptableValueRange<int>(0, MaxSlots)));
         var log = new BankLog(Log, Path.Combine(Paths.BepInExRootPath, "package-bank.log"));
         var harmony = new Harmony(Guid);
-        var session = new BankSession(new GameBank(new GameShop(log.Write), log.Write), new WebPage(log.Write), log.Write);
+        var bank = new GameBank(new GameShop(log.Write), log.Write);
+        var session = new BankSession(bank, new WebPage(log.Write), log.Write);
+
+        PackageBankApi.Use(bank, log.Write);
 
         log.Write($"===== Package Bank {Version} started");
         InputGate.Apply(harmony, log.Write);
