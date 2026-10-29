@@ -13,3 +13,9 @@ Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created t
 | `DefenseSlots` | `4` | How many defense packages (sandbags, spike barriers and other defenses) the bank holds. Any number from 0 to 100. |
 
 Story Items have no limit. Lowering a limit below what is already banked keeps those packages in the bank; nothing more of that size goes in until the count drops below the limit.
+
+## Interface
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `UiScale` | `0` | How big Package Bank's own windows, panels and messages are drawn, in percent, from 75 to 200. At `0` they follow the UI size set in Exiled's Toolkit (its `UiScale`). Needs Exiled's Toolkit 0.11.0 or newer. |

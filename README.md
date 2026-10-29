@@ -13,7 +13,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Defenses:** sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own.
 - **Buttons say why not:** a greyed-out button shows the reason. A full shelf says `bank full` once on its group in the yard list, no free package spot shows one notice at the top of the bank list, and a package being moved or installed says so under its name.
-- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel and its pop-up messages bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size.
+- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel and its pop-up messages bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size. With Toolkit 0.11.0 or newer, Package Bank's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 
 Works in English and Chinese.
 

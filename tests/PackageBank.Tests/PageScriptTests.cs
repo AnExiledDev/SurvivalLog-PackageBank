@@ -663,6 +663,7 @@ public class PageScriptTests
         page.Open(ViewOf(Yard(out _, out _)));
 
         Assert.Equal("2", page.Text("handed.length"));
+        Assert.Equal("2", page.Text("handed.filter(function (h) { return h.options.mod === 'PackageBank'; }).length"));
         Assert.Equal("pb-root", page.Text("handed[0].el.id"));
         Assert.True(page.Is("handed[0].options.fit === document.querySelector('.pb-plate')"));
         Assert.Equal("pb-toast", page.Text("handed[1].el.id"));

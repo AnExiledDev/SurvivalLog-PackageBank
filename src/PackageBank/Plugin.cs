@@ -16,7 +16,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.3.4";
+    private const string Version = "0.4.0";
     private const int MaxSlots = 100;
     private const string CoreNamespace = "PackageBank.Core";
     private const string AdaptersNamespace = "PackageBank.Adapters";
@@ -25,6 +25,8 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
+
+        OptionalUiSize.Bind(Config);
 
         var limitBySize = Config.Bind("Bank", "LimitBySize", true,
             "Limit how many packages of each size the bank holds, set by LargeSlots, MediumSlots, SmallSlots and DefenseSlots. Set to false for no limit. Story items never have a limit.\n" +
