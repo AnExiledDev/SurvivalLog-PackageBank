@@ -2,6 +2,7 @@
 
 ## 0.5.1
 
+- **Warning:** needs Exiled's Toolkit 0.11.0 or newer. Update the Toolkit first.
 - With the bank panel closed, Package Bank's messages now show as Exiled's Toolkit toasts. Those toasts also go to the Notifications history.
 - Exiled's Toolkit 0.11.0 or newer is now required.
 - Made for Survival Log 1.1.19611.
