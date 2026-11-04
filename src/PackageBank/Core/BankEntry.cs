@@ -72,7 +72,8 @@ public static class BankCounters
     private const string SourceHighField = "srcHi";
     private const string SourceLowField = "srcLo";
     private const string BoughtField = "bought";
-    private const int UnknownPaid = -1;
+    /// <summary>The price an entry stores when the bank does not know what was paid.</summary>
+    public const int UnknownPaid = -1;
 
     private static readonly string[] Fields = { ConfigField, DyeField, PaidField, SourceHighField, SourceLowField, BoughtField };
 

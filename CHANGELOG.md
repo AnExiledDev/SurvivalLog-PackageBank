@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- Floor Plan 0.2.0 can put furniture that no longer fits its spot into the bank, whatever its size and however full the bank is, keeping its color.
+- Made for Survival Log 1.1.20151.
+
 ## 0.5.1
 
 - **Warning:** needs Exiled's Toolkit 0.11.0 or newer. Update the Toolkit first.

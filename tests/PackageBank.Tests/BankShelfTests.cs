@@ -30,4 +30,27 @@ public class BankShelfTests
     {
         Assert.Null(BankShelf.Oldest(Shelf, 99));
     }
+
+    [Fact]
+    public void A_deposit_goes_after_the_newest_entry_with_its_color_and_no_price()
+    {
+        var entry = BankShelf.Deposit(Shelf, 77, 4);
+
+        Assert.Equal(new BankEntry(6, 77, 4, -1, 0, IsPurchased: false), entry);
+    }
+
+    [Fact]
+    public void A_deposit_into_an_empty_bank_takes_the_first_slot()
+    {
+        Assert.Equal(0, BankShelf.Deposit(System.Array.Empty<BankEntry>(), 77, 0).Slot);
+    }
+
+    [Fact]
+    public void A_deposited_entry_reads_back_as_written()
+    {
+        var entry = BankShelf.Deposit(Shelf, 77, 4);
+        var read = BankCounters.Read(System.Linq.Enumerable.Select(BankCounters.Write(entry), field => new System.Collections.Generic.KeyValuePair<string, int>(field.Key, field.Value)));
+
+        Assert.Equal(entry, Assert.Single(read.Entries));
+    }
 }

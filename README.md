@@ -49,7 +49,7 @@ See [CONFIG.md](CONFIG.md).
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.5.1 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.5.2 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

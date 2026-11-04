@@ -17,7 +17,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.5.1";
+    private const string Version = "0.5.2";
     private const int MaxSlots = 100;
     private const string CoreNamespace = "PackageBank.Core";
     private const string AdaptersNamespace = "PackageBank.Adapters";

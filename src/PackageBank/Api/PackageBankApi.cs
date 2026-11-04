@@ -64,4 +64,33 @@ public static class PackageBankApi
             return 0;
         }
     }
+
+    /// <summary>
+    /// Puts a package of that furniture, in that color, into the bank, whatever its size and however full the bank is.
+    /// For a mod that has taken the furniture away and has nowhere else to put it. False when no game is loaded or it
+    /// failed, so the caller keeps the furniture.
+    /// </summary>
+    public static bool Deposit(int configId, int dye)
+    {
+        try
+        {
+            var bank = _bank;
+
+            if (bank == null || configId <= 0) return false;
+
+            var entry = BankShelf.Deposit(bank.Entries(), configId, dye);
+
+            if (!bank.Deposit(entry)) return false;
+
+            _log($"another mod put furniture {configId} (color {dye}) into the bank, slot {entry.Slot}");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log("another mod's deposit failed: " + ex.Message);
+
+            return false;
+        }
+    }
 }

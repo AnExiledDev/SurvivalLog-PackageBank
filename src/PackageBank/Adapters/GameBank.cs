@@ -235,6 +235,23 @@ internal sealed class GameBank : IBankGame
         bag.DyeSlot = dye;
     }
 
+    /// <summary>
+    /// Writes an entry another mod deposits, straight into the save's counters, and has the shop count again. False with
+    /// no save loaded.
+    /// </summary>
+    public bool Deposit(BankEntry entry)
+    {
+        var counters = Counters();
+
+        if (counters == null) return false;
+
+        WriteEntry(counters, entry);
+
+        if (Build() is { } build) _shop.Recount(build);
+
+        return true;
+    }
+
     /// <summary>The bank's entries, empty with no save loaded. Cheap: the counters are read again only when they changed.</summary>
     public IReadOnlyList<BankEntry> Entries()
     {
