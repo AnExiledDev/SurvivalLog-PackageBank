@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Each world can keep its own size limits: `LimitBySize`, `LargeSlots`, `MediumSlots`, `SmallSlots` and `DefenseSlots`. With Exiled's Toolkit 0.17.0 or newer, pick them for a new world in Customizable Difficulty, or change them for the world you are playing on the Mod Manager's Mods screen. `UiScale` stays the same for every world.
+- Made for Survival Log 1.1.20151.
+
 ## 0.5.2
 
 - Floor Plan 0.2.0 can put furniture that no longer fits its spot into the bank, whatever its size and however full the bank is, keeping its color.

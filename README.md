@@ -45,11 +45,11 @@ Delete `PackageBank.dll` from `BepInEx\plugins`. Take everything out of the bank
 
 ## Configuration
 
-See [CONFIG.md](CONFIG.md).
+See [CONFIG.md](CONFIG.md). With Exiled's Toolkit 0.17.0 or newer, each world can keep its own size limits: pick them for a new world in Customizable Difficulty, or change them for that world alone on the Mod Manager's Mods screen.
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.5.2 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.6.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

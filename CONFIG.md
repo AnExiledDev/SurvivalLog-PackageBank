@@ -1,6 +1,6 @@
 # Package Bank settings
 
-Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Delete the file to get the defaults back.
+Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Changed on the Mods screen, every setting takes effect at once. With Exiled's Toolkit 0.17.0 or newer, each world can keep its own size limits: every setting in Bank. Pick them for a new world in Customizable Difficulty, or, while you play, change them for that world alone on the Mods screen. Delete the file to get the defaults back.
 
 ## Bank
 
