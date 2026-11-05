@@ -1,26 +1,41 @@
+using ExiledToolkit.Web;
 using Jint;
 using PackageBank.Core;
 
 namespace PackageBank.Tests;
 
 /// <summary>
-/// page.js exactly as the plugin embeds it, run in Jint on top of FakePage.js (Root.html, the HUD, the build shop and
-/// the vuplex bridge). The calls into the script are the ones WebPage makes, and what the script posts is parsed with
-/// the real PageCommand, so a test sees the commands the plugin would act on.
+/// page.js exactly as the plugin embeds it, run in Jint with Exiled's Toolkit's page API (api.js, from the Toolkit's
+/// source) on top of FakePage.js (Root.html, the HUD, the build shop and the vuplex bridge). The calls into the script
+/// are the ones BankPage makes, and what the script posts is parsed with the real PageCommand, so a test sees the
+/// commands the plugin would act on.
 /// </summary>
 internal sealed class PageScript
 {
     private readonly Engine _engine = new();
 
-    public PageScript()
+    /// <param name="isToolkitFirst">
+    /// The game runs the Toolkit's script first, or with false Package Bank's first; then the Toolkit's runs only at
+    /// <see cref="LoadToolkit"/>.
+    /// </param>
+    public PageScript(bool isToolkitFirst = true)
     {
         _engine.Execute(Resource("PackageBank.Tests.FakePage.js"));
+
+        if (isToolkitFirst) _engine.Execute(Resource("ExiledToolkit.api.js"));
+
         _engine.Execute(Resource("PackageBank.page.js"));
         Hear();
     }
 
     /// <summary>Every command the script sent the plugin, its ready message and diag notes aside.</summary>
     public List<PageCommand> Sent { get; } = new();
+
+    /// <summary>Whether the script told the plugin it is ready, which has the plugin send it everything again.</summary>
+    public bool HasSaidReady { get; private set; }
+
+    /// <summary>The Toolkit's page API arriving after Package Bank's script.</summary>
+    public void LoadToolkit() => Run(Resource("ExiledToolkit.api.js"));
 
     public void Run(string statements)
     {
@@ -36,7 +51,7 @@ internal sealed class PageScript
 
     public int Number(string expression) => (int)_engine.Evaluate($"Number({expression})").AsNumber();
 
-    /// <summary>One run of the script's 400 ms page check.</summary>
+    /// <summary>One run of the Toolkit's 250 ms page check, which hands the HUD, the shop and the click menu to the script.</summary>
     public void Poll() => Run("poll()");
 
     public void Click(string expression) => Run($"click({expression})");
@@ -61,7 +76,8 @@ internal sealed class PageScript
 
         foreach (var command in messages.Select(PageCommand.Parse))
         {
-            if (command is not (PageCommand.Ready or PageCommand.Unknown)) Sent.Add(command);
+            if (command is PageCommand.Ready) HasSaidReady = true;
+            else if (command is not PageCommand.Unknown) Sent.Add(command);
         }
     }
 

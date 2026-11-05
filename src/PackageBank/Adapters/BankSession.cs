@@ -1,5 +1,7 @@
 using System;
 using ExiledToolkit;
+using ExiledToolkit.Game;
+using ExiledToolkit.Web;
 using PackageBank.Core;
 using UnityEngine;
 
@@ -14,8 +16,12 @@ internal sealed class BankSession
 {
     private const float RefreshSeconds = 1f;
 
+    /// <summary>The name the panel holds the game's hotkeys and clicks under, while it is open.</summary>
+    private const string WindowName = "PackageBank.panel";
+
+    private readonly PageMailbox _messages = PageInbox.Listen(PageCommand.Prefix);
     private readonly IBankGame _game;
-    private readonly WebPage _page;
+    private readonly BankPage _page;
     private readonly BankFeed _feed;
     private readonly Action<string> _log;
     private BankLimits _limits = new(IsLimited: true, Large: 4, Medium: 6, Small: 8, Defense: 4);
@@ -26,7 +32,7 @@ internal sealed class BankSession
     private long? _menuOpenOn;
     private bool _hasReportedMenuReadFailure;
 
-    public BankSession(IBankGame game, WebPage page, Action<string> log)
+    public BankSession(IBankGame game, BankPage page, Action<string> log)
     {
         _game = game;
         _page = page;
@@ -53,7 +59,7 @@ internal sealed class BankSession
         var now = Time.unscaledTime;
         _page.KeepInstalled(now);
 
-        while (PageMessages.TryTake(out var command)) HandleSafely(command);
+        while (_messages.TryTake(out var message)) HandleSafely(PageCommand.Parse(message));
 
         if (_isOpen && Input.GetKeyDown(KeyCode.Escape))
         {
@@ -182,7 +188,7 @@ internal sealed class BankSession
         if (view == null) return;
 
         _isOpen = true;
-        InputGate.PanelOpened();
+        InputGate.Opened(WindowName);
         _feed.Shown(view);
         _page.Open(view);
         _log("panel opened");
@@ -193,7 +199,7 @@ internal sealed class BankSession
         if (!_isOpen) return;
 
         _isOpen = false;
-        InputGate.PanelClosed();
+        InputGate.Closed(WindowName);
         _page.Close();
     }
 

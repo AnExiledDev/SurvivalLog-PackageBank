@@ -512,11 +512,12 @@ public class PageScriptTests
         Assert.True(page.Is("hudButton() && prepHudButton() && shopBankButton(0) && shopBankButton(1) && shopBank()"));
     }
 
+    /// <summary>The first check that sees a page may look once for a button an older copy of the script left there.</summary>
     [Fact]
     public void With_no_game_loaded_and_the_shop_shut_a_page_check_searches_no_page_and_adds_nothing()
     {
         var page = new PageScript();
-        page.Run("openHud(); openShop(['Bed']); openMenu(['Install', 'Return']); settle()");
+        page.Run("openHud(); openShop(['Bed']); openMenu(['Install', 'Return']); settle(); poll()");
         page.Live(false);
         page.Shop(null);
 
@@ -696,9 +697,9 @@ public class PageScriptTests
         Assert.True(page.Is("handed[1].options.fit === document.querySelector('.pb-plate')"));
     }
 
-    /// <summary>The Toolkit's script can load after this one; the panel waits in the list it reads when it starts.</summary>
+    /// <summary>The Toolkit's UI size script can load after its page API; the panel waits in the list it reads when it starts.</summary>
     [Fact]
-    public void Before_the_toolkit_has_loaded_the_panel_waits_for_it()
+    public void Before_the_toolkits_ui_size_has_loaded_the_panel_waits_for_it()
     {
         var page = new PageScript();
 
@@ -706,6 +707,64 @@ public class PageScriptTests
 
         Assert.Equal("1", page.Text("window.__exiledUiWait.length"));
         Assert.Equal("pb-root", page.Text("window.__exiledUiWait[0][0].id"));
+        Assert.Equal("PackageBank", page.Text("window.__exiledUiWait[0][1].mod"));
         Assert.True(page.Is("window.__exiledUiWait[0][1].fit === document.querySelector('.pb-plate')"));
+    }
+
+    // ===== Load order (Exiled's Toolkit's page API) =====
+
+    /// <summary>The plugin sends everything again when the page says it is ready, so the page must say it once it can work.</summary>
+    [Fact]
+    public void With_the_toolkit_loaded_first_the_page_says_ready_and_shows_its_button()
+    {
+        var page = new PageScript(isToolkitFirst: true);
+
+        page.Run("openHud()");
+        page.Live(true);
+
+        Assert.True(page.HasSaidReady);
+        Assert.True(page.Is("hudButton()"));
+    }
+
+    /// <summary>
+    /// The game can run Package Bank's script before the Toolkit's. Until the Toolkit's arrives the page says nothing,
+    /// and then it says it is ready and shows the button and the shop's bank with what the plugin already sent.
+    /// </summary>
+    [Fact]
+    public void With_the_page_loaded_first_it_waits_for_the_toolkit_then_says_ready_and_adds_to_the_hud_and_the_shop()
+    {
+        var page = new PageScript(isToolkitFirst: false);
+
+        page.Run("openHud(); openShop(['Bed', 'Lamp'])");
+        page.Live(true);
+        page.Shop(ViewOf(Yard(out _, out _)));
+
+        Assert.False(page.HasSaidReady);
+        Assert.False(page.Is("hudButton()"));
+        Assert.False(page.Is("shopBank()"));
+
+        page.LoadToolkit();
+
+        Assert.True(page.HasSaidReady);
+        Assert.True(page.Is("pageOf(/CoreUI1/).querySelector('.vertical-tools').firstChild === hudButton()"));
+        Assert.True(page.Is("shopBankButton(1) && shopBank()"));
+    }
+
+    /// <summary>A panel opened before the Toolkit's script ran gets its style and its UI size when the Toolkit arrives.</summary>
+    [Fact]
+    public void A_panel_opened_before_the_toolkit_loaded_gets_its_style_and_size_when_it_arrives()
+    {
+        var page = new PageScript(isToolkitFirst: false);
+
+        page.Open(ViewOf(Yard(out _, out _)));
+
+        Assert.True(page.Is("document.getElementById('pb-root')"));
+        Assert.False(page.Is("document.getElementById('pb-style')"));
+        Assert.False(page.Is("window.__exiledUiWait"));
+
+        page.LoadToolkit();
+
+        Assert.True(page.Is("document.getElementById('pb-style').textContent.indexOf('.pb-plate') >= 0"));
+        Assert.Equal("pb-root", page.Text("window.__exiledUiWait[0][0].id"));
     }
 }

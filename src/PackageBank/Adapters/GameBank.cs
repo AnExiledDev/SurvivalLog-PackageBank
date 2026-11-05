@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ExiledToolkit.Game;
+using ExiledToolkit.Web;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using PackageBank.Core;
@@ -23,7 +25,7 @@ internal sealed class GameBank : IBankGame
     private readonly GameShop _shop;
     private readonly HashSet<string> _reportedFailures = new();
     private readonly KeyedMemo<(IntPtr Config, bool IsChinese, bool HasIcons), FurnitureInfo> _furniture;
-    private readonly Task<(IconIndex Icons, string Note)>? _iconLoad;
+    private readonly Task<(IconIndex Icons, string Note)> _iconScan;
     private readonly List<HomeSpot> _spots = new();
 
     private IconIndex? _icons;
@@ -47,16 +49,7 @@ internal sealed class GameBank : IBankGame
         _shop = shop;
         _log = log;
         _furniture = new KeyedMemo<(IntPtr, bool, bool), FurnitureInfo>(Describe);
-
-        try
-        {
-            _iconLoad = WebIcons.LoadInBackground();
-        }
-        catch (Exception ex)
-        {
-            _log("could not start reading the web icons, packages will show letters instead: " + ex.Message);
-            _icons = IconIndex.Empty;
-        }
+        _iconScan = WebIcons.StartScan();
     }
 
     public BankState State()
@@ -528,7 +521,7 @@ internal sealed class GameBank : IBankGame
     {
         var row = Row(config, configId);
 
-        return Translate(config, row?.Name) ?? NonEmpty(row?.Name_Local) ?? NonEmpty(row?.Name) ?? $"Package {configId}";
+        return GameNames.Translate(config, row?.Name) ?? GameNames.NonEmpty(row?.Name_Local) ?? GameNames.NonEmpty(row?.Name) ?? $"Package {configId}";
     }
 
     private static int? SlotTypeOf(int configId)
@@ -604,22 +597,17 @@ internal sealed class GameBank : IBankGame
 
     private static UnityEngine.Vector3 PositionOf(BaseAgent agent) => AgentTools.GetAgentComponent<TransformComponent>(agent)?.Position ?? UnityEngine.Vector3.zero;
 
-    /// <summary>The web icons once the worker has walked the folder; null until then, and the panel shows letters.</summary>
+    /// <summary>
+    /// The web icons once the Toolkit's worker has walked the folder; null until then, and the panel shows letters. The
+    /// scan never fails: a folder it cannot read gives the empty index, and its note says why.
+    /// </summary>
     private IconIndex? Icons()
     {
         if (_icons != null) return _icons;
-        if (_iconLoad == null || !_iconLoad.IsCompleted) return null;
+        if (!_iconScan.IsCompleted) return null;
 
-        if (_iconLoad.IsCompletedSuccessfully)
-        {
-            _log(_iconLoad.Result.Note);
-            _icons = _iconLoad.Result.Icons;
-        }
-        else
-        {
-            _log("reading the web icons failed, packages will show letters instead: " + _iconLoad.Exception?.GetBaseException().Message);
-            _icons = IconIndex.Empty;
-        }
+        _log(_iconScan.Result.Note);
+        _icons = _iconScan.Result.Icons;
 
         return _icons;
     }
@@ -631,17 +619,6 @@ internal sealed class GameBank : IBankGame
         _loggedHomeCount = count;
         _log($"{count} packages in the yard");
     }
-
-    private static string? Translate(ConfigManager config, string? key)
-    {
-        if (string.IsNullOrEmpty(key)) return null;
-
-        var text = config.GetLocalTxt(key);
-
-        return string.IsNullOrEmpty(text) || text == key ? null : text;
-    }
-
-    private static string? NonEmpty(string? text) => string.IsNullOrWhiteSpace(text) ? null : text;
 
     /// <summary>A broken click menu costs only the menu's Bank entry, never the rest of the bank.</summary>
     private long? MenuOpenOn()

@@ -1,6 +1,6 @@
 using System;
+using ExiledToolkit.Game;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 
 namespace PackageBank.Adapters;
 
@@ -12,30 +12,21 @@ namespace PackageBank.Adapters;
 internal static class MenuOpening
 {
     private static Action<long> _onOpened = _ => { };
-    private static Action<string> _log = _ => { };
-    private static bool _hasReportedFailure;
+    private static PatchKit? _hooks;
 
     /// <summary>False when the hook could not go in; the session then looks for the menu every frame instead.</summary>
-    public static bool Apply(Harmony harmony, Action<long> onOpened, Action<string> log)
+    public static bool Apply(PatchKit hooks, Action<long> onOpened)
     {
         _onOpened = onOpened;
-        _log = log;
+        _hooks = hooks;
 
-        try
-        {
-            harmony.Patch(
-                AccessTools.Method(typeof(Ac_SelectMenu_Open), nameof(Ac_SelectMenu_Open.SendAction)),
-                postfix: new HarmonyMethod(typeof(MenuOpening), nameof(Opened)));
-            log("the Bank entry is sent as the click menu opens");
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            log($"could not hook Ac_SelectMenu_Open.SendAction, the Bank entry may show a moment after the menu: {ex.Message}");
-
-            return false;
-        }
+        return hooks.Patch(
+            typeof(MenuOpening),
+            typeof(Ac_SelectMenu_Open),
+            nameof(Ac_SelectMenu_Open.SendAction),
+            postfix: nameof(Opened),
+            done: "the Bank entry is sent as the click menu opens",
+            consequence: "the Bank entry may show a moment after the menu");
     }
 
     // Harmony matches the parameter by its name in the game's method.
@@ -47,9 +38,7 @@ internal static class MenuOpening
         }
         catch (Exception ex)
         {
-            if (!_hasReportedFailure) _log("sending the Bank entry as the menu opened failed (reported once): " + ex);
-
-            _hasReportedFailure = true;
+            _hooks?.Fail("sending the Bank entry as the menu opened", ex);
         }
     }
 }

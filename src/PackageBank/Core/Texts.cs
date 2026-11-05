@@ -1,16 +1,9 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
+using ExiledToolkit.Kit;
+using ExiledToolkit.Web;
 
 namespace PackageBank.Core;
-
-/// <summary>One piece of on-screen text in the two languages the game ships. {0}, {1} are filled in by Say.</summary>
-public readonly record struct Phrase(string En, string Zh)
-{
-    public string Pick(bool isChinese) => isChinese ? Zh : En;
-
-    public string Say(bool isChinese, params object[] args) => string.Format(CultureInfo.InvariantCulture, Pick(isChinese), args);
-}
 
 /// <summary>The words the mod puts on screen: press results and the panel's own labels.</summary>
 public static class Texts

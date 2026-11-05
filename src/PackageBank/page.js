@@ -2,7 +2,8 @@
 // all of them, puts a button in the HUD's tool column (bottom left, above the phone and bag buttons) built like the
 // game's own buttons there, and while the build shop is open adds a Bank button beside each Refund button of its
 // package list and the banked packages under that list, and a Bank entry in the click menu of a yard package. Talks to the plugin through
-// vuplex.postMessage("slmod|packagebank|<verb>") and is driven by window.__slpkgbank.
+// vuplex.postMessage("slmod|packagebank|<verb>") and is driven by window.__slpkgbank. The HUD button, the bridge and
+// the checks of the game's pages come from Exiled's Toolkit's page API (window.ExiledToolkit).
 (function () {
   if (window.__slpkgbank) return;
 
@@ -11,6 +12,7 @@
   // The bank's place in the HUD's tool column when Exiled's Toolkit lays it out in columns of four.
   var DOCK_ORDER = '20';
   var MENU_CLASS = 'pb-menu-btn';
+  var STYLE_ID = 'pb-style';
   var SHOP_STYLE_ID = 'pb-shop-style';
   var SHOP_BANK_ID = 'pb-shop-bank';
   var SHOP_BUTTON_CLASS = 'pb-bank-btn';
@@ -45,9 +47,17 @@
   var isBusy = false;
   var busyTimer = 0;
   var shopVersion = 0;
-  var hasReportedPageAccess = false;
   var hasReportedHudPlaced = false;
   var hasReportedShopPatched = false;
+
+  // The Toolkit's page API. The game can run its script after this one, so this stays null until it has; the HUD
+  // button, the checks of the shop and the click menu, and the messages to the plugin start then.
+  var etk = null;
+  // The Package Bank button in the HUD's tool column. The Toolkit keeps it there and writes changes into it in place.
+  var hudButton = null;
+  // The Toolkit's checks of the build shop and the click menu, which hand those pages to patchShop and patchMenu.
+  var shopWatch = null;
+  var menuWatch = null;
 
   function emptyData() {
     return { limited: true, spots: 0, sizes: [], home: [], bank: [], takeWhy: null, shop: null };
@@ -62,10 +72,14 @@
     return text;
   }
 
+  // Through the Toolkit's bridge. Nothing goes before its page API is there; the page says it is ready once it is.
   function send(message) {
-    try {
-      if (window.vuplex) window.vuplex.postMessage(PREFIX + message);
-    } catch (e) {}
+    if (etk) etk.send(PREFIX, message);
+  }
+
+  // Runs fn with the Toolkit's page API: at once when its script ran first, else when it runs.
+  function withToolkit(fn) {
+    (window.ExiledToolkitReady = window.ExiledToolkitReady || []).push(fn);
   }
 
   // One press at a time: a double click would otherwise bank two packages. Every press is answered by a status line,
@@ -219,7 +233,7 @@
 
     // Drawn at the player's UI size (Exiled's Toolkit). The full-screen mask always fills the screen, so the panel on
     // it is what must fit.
-    uiSize(root, { fit: plate });
+    withToolkit(function (api) { api.size(root, { mod: 'PackageBank', fit: plate }); });
 
     root.addEventListener('click', onClick);
     // Clicks inside the plate must not reach the game pages underneath; the mask itself closes nothing on purpose.
@@ -256,30 +270,9 @@
     if (img && img.tagName === 'IMG' && img.parentNode) img.parentNode.textContent = img.getAttribute('data-letter') || '?';
   }
 
-  // Hands a panel to Exiled's Toolkit to be drawn at the player's UI size. Before the Toolkit's script has loaded it
-  // waits in a list the Toolkit reads; without the Toolkit nothing happens.
-  function uiSize(node, options) {
-    options = Object.assign({ mod: 'PackageBank' }, options);
-    var toolkit = window.ExiledUi;
-
-    if (toolkit) {
-      toolkit.size(node, options);
-      return;
-    }
-
-    var waiting = window.__exiledUiWait = window.__exiledUiWait || [];
-    waiting.push([node, options]);
-    if (waiting.length > 32) waiting.shift();
-  }
-
-  // The style outlives a lost panel root, so a rebuild must not stack another copy of it.
+  // The style outlives a lost panel root; the Toolkit keeps one copy per id, so a rebuild does not stack another.
   function addStyle() {
-    if (document.getElementById('pb-style')) return;
-
-    var style = el('style');
-    style.id = 'pb-style';
-    style.textContent = CSS;
-    document.head.appendChild(style);
+    withToolkit(function (api) { api.addStyle(document, STYLE_ID, CSS); });
   }
 
   function onClick(e) {
@@ -619,7 +612,7 @@
   // Whether the player is at home in a loaded game: the HUD button is only shown then.
   function live(isLive) {
     state.isLive = !!isLive;
-    patchPagesSafely();
+    showHudButton();
   }
 
   // The panel's view while the build shop or the click menu is open, null otherwise; the shop's buttons and bank rows,
@@ -628,136 +621,42 @@
     state.shop = data && data.shop ? data : null;
     state.menu = data && data.menu ? data.menu : null;
     shopVersion++;
-    patchPagesSafely();
+    refreshPages();
   }
 
-  // The game pages the bank adds to. The HUD is CoreUI0 in the countdown before the disaster and CoreUI1 after it; the
-  // two draw their tool buttons differently.
-  var PAGES = [
-    { pattern: /CoreUI0\.html/, patch: function (doc) { placeHudButton(doc, prepHudButton); } },
-    { pattern: /CoreUI1\.html/, patch: function (doc) { placeHudButton(doc, hudButton); } },
-    { pattern: /BuildShop\.html/, patch: patchShop },
-    { pattern: /SelectMenu\.html/, patch: patchMenu }
-  ];
-
-  // The root's iframes, kept up to date by the browser, so a check never has to search the root document for them.
-  var frames = document.getElementsByTagName('iframe');
-
-  // Which of the bank's pages an iframe shows, worked out again only when its address changes.
-  function pageFor(frame) {
-    var src = frame.src || '';
-
-    if (frame.pbSrc !== src) {
-      frame.pbSrc = src;
-      frame.pbPage = PAGES.filter(function (page) { return page.pattern.test(src); })[0] || null;
-    }
-
-    return frame.pbPage;
+  // Runs once the Toolkit's page API is there. The HUD is CoreUI0 in the countdown before the disaster and CoreUI1 after
+  // it; the Toolkit draws the button in each one's own markup and puts it back whenever the game draws the column again.
+  // The shop redraws its list on every Buy and Refund and the click menu its entries every time it opens, so both are
+  // handed over at every check; each patch returns at once when what it added is still there and nothing it is drawn
+  // from changed.
+  function startWithToolkit(api) {
+    etk = api;
+    hudButton = etk.addHudButton({
+      id: HUD_CLASS, order: DOCK_ORDER, icon: BOX_PATH, title: say('title'), tip: say('tip'), shown: state.isLive,
+      pages: /CoreUI[01]\.html/,
+      onClick: function () { send('toggle'); },
+      onPlace: noteHudPlaced
+    });
+    shopWatch = etk.watchPages(/BuildShop\.html/, patchShop, { everyCheck: true });
+    menuWatch = etk.watchPages(/SelectMenu\.html/, patchMenu, { everyCheck: true });
+    watchForFrames();
+    send('ready');
   }
 
-  // The game's pages are same-origin iframes, so their documents can be reached from here; polled because the game
-  // creates and drops those iframes whenever it likes, the shop redraws its list on every Buy and Refund, and the click
-  // menu redraws its entries every time it opens. Each page's patch returns at once when what it added is still there
-  // and nothing it is drawn from changed.
-  function patchPages() {
-    for (var i = 0; i < frames.length; i++) {
-      var frame = frames.item(i);
-      var src = frame.src || '';
-      var page = pageFor(frame);
-
-      if (!page) continue;
-
-      var doc = null;
-
-      try {
-        doc = frame.contentDocument;
-      } catch (e) {}
-
-      if (!doc) {
-        if (!hasReportedPageAccess) send('diag|cannot reach a game page document (root ' + location.protocol + ', iframe ' + src + ')');
-        hasReportedPageAccess = true;
-        continue;
-      }
-
-      page.patch(doc);
-    }
+  // Shown only at home in a loaded game, in the words the plugin sent last.
+  function showHudButton() {
+    if (hudButton) hudButton.update({ shown: state.isLive, title: say('title'), tip: say('tip') });
   }
 
-  function patchPagesSafely() {
-    try {
-      patchPages();
-    } catch (e) {}
-  }
-
-  // First in the tool column: the column is anchored at the bottom, so the first child sits on top and the game's own
-  // buttons do not move. The column hides itself in build mode, and the button with it.
-  // The button placed is kept on the page's document, so a check with it still in the column searches nothing.
-  function placeHudButton(doc, build) {
-    var existing = doc.pbHudButton && doc.pbHudButton.isConnected ? doc.pbHudButton : null;
-
-    if (!state.isLive) {
-      if (existing) existing.remove();
-
-      return;
-    }
-
-    if (existing && existing.parentNode && existing.parentNode.classList.contains('vertical-tools')) return;
-
-    var column = doc.querySelector('.vertical-tools');
-
-    if (!column) {
-      if (existing) existing.remove();
-
-      return;
-    }
-
-    if (existing && existing.parentNode === column) return;
-    if (existing) existing.remove();
-
-    var node = build(doc);
-
-    node.setAttribute('data-etk-dock', DOCK_ORDER);
-    column.insertBefore(node, column.firstChild);
-    doc.pbHudButton = node;
-
+  function noteHudPlaced() {
     if (!hasReportedHudPlaced) send('diag|HUD button placed in the tool column');
     hasReportedHudPlaced = true;
   }
 
-  // The same markup as CoreUI1's bag button: its classes, an svg icon, and the hover tip its stylesheet shows. Every
-  // game page watches its body for new buttons and tells the game where they are, so a click on this one reaches it.
-  function hudButton(doc) {
-    var node = toggleButton(doc, 'ui-btn icon-sq interactive-btn has-entry-tip ' + HUD_CLASS);
-
-    node.appendChild(entryTip(doc));
-
-    return node;
-  }
-
-  // CoreUI0's tool buttons sit in a wrapper with their hover tip beside them, to the right.
-  function prepHudButton(doc) {
-    var wrapper = make(doc, 'div', 'tooltip-wrapper ' + HUD_CLASS);
-    var tip = make(doc, 'div', 'btn-tooltip btn-tooltip--right');
-
-    tip.appendChild(make(doc, 'div', 'tip-name', say('title')));
-    tip.appendChild(make(doc, 'div', 'tip-desc', say('tip')));
-    wrapper.appendChild(toggleButton(doc, 'ui-btn icon-sq interactive-btn'));
-    wrapper.appendChild(tip);
-
-    return wrapper;
-  }
-
-  function toggleButton(doc, className) {
-    var node = make(doc, 'button', className);
-
-    node.setAttribute('data-interactive', '');
-    node.appendChild(boxIcon(doc, 'icon-svg'));
-    node.addEventListener('click', function (e) {
-      e.stopPropagation();
-      send('toggle');
-    });
-
-    return node;
+  // What the shop and the click menu are drawn from changed: patch them now rather than at the next check.
+  function refreshPages() {
+    if (shopWatch) shopWatch.refresh();
+    if (menuWatch) menuWatch.refresh();
   }
 
   // Shown while the game's click menu is open on a yard package the bank lists, last in its main column. Greyed with
@@ -842,22 +741,6 @@
     svg.appendChild(path);
 
     return svg;
-  }
-
-  function entryTip(doc) {
-    var tip = doc.createElement('div');
-    var title = doc.createElement('div');
-    var body = doc.createElement('div');
-
-    tip.className = 'entry-tip';
-    title.className = 'entry-tip-title';
-    title.textContent = say('title');
-    body.className = 'entry-tip-body';
-    body.textContent = say('tip');
-    tip.appendChild(title);
-    tip.appendChild(body);
-
-    return tip;
   }
 
   // Buttons in the shop's own look (its Refund button), plus the bank rows, which copy its package rows.
@@ -1028,12 +911,7 @@
   }
 
   function addShopStyle(doc) {
-    if (doc.getElementById(SHOP_STYLE_ID)) return;
-
-    var style = doc.createElement('style');
-    style.id = SHOP_STYLE_ID;
-    style.textContent = SHOP_CSS;
-    (doc.head || doc.body).appendChild(style);
+    etk.addStyle(doc, SHOP_STYLE_ID, SHOP_CSS);
   }
 
   function removeAll(nodes) {
@@ -1041,33 +919,31 @@
   }
 
   // A game page in a new iframe is patched, and the click menu watched, as soon as the iframe appears and again when
-  // it loads, not at the next poll; the menu's Bank entry depends on that watcher being in place before the game draws
-  // the menu's buttons.
+  // it loads, not at the Toolkit's next check; the menu's Bank entry depends on that watcher being in place before the
+  // game draws the menu's buttons.
   function watchForFrames() {
     if (typeof MutationObserver === 'undefined') return;
 
-    // Any change in the root (the bank's own panel included) lands here, so the check walks the kept list of iframes
-    // and searches nothing.
+    // Any change in the root (the bank's own panel included) lands here, so the check walks the browser's kept list of
+    // iframes and searches nothing.
     new MutationObserver(function () {
+      var frames = document.getElementsByTagName('iframe');
       var isNew = false;
 
       for (var i = 0; i < frames.length; i++) {
-        var frame = frames.item(i);
+        var frame = frames[i];
 
         if (frame.pbLoadWatched) continue;
 
         frame.pbLoadWatched = true;
-        frame.addEventListener('load', patchPagesSafely);
+        frame.addEventListener('load', refreshPages);
         isNew = true;
       }
 
-      if (isNew) patchPagesSafely();
+      if (isNew) refreshPages();
     }).observe(document.body, { childList: true, subtree: true });
   }
 
-  watchForFrames();
-  setInterval(patchPagesSafely, 400);
-
   window.__slpkgbank = { open: open, setData: setData, close: close, status: status, live: live, shop: shop };
-  send('ready');
+  withToolkit(startWithToolkit);
 })();

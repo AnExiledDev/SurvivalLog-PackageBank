@@ -1,6 +1,6 @@
 // Just enough of Root.html, the HUD page (UI/CoreUI1.html) and the build shop (UI/BuildShop/BuildShop.html) for
-// page.js to run in Jint: the root document with its page iframes, the vuplex bridge, and clicks that bubble. Test code
-// only; nothing here ships.
+// page.js and Exiled's Toolkit's page API (api.js) to run in Jint: the root document with its page iframes, the vuplex
+// bridge, and clicks that bubble. Test code only; nothing here ships.
 var window = this;
 
 var location = { protocol: 'https:', href: 'https://game.local/WebUI/Root.html?v=2/x' };
@@ -13,7 +13,7 @@ function setInterval(callback) {
   return intervals.length;
 }
 
-// One run of every interval the script set, which is how its 400 ms page check runs.
+// One run of every interval the scripts set, which is how the Toolkit's 250 ms page check runs.
 function poll() {
   intervals.slice().forEach(function (callback) { callback(); });
 }
@@ -46,7 +46,8 @@ var FakeElement = class {
     this.listeners = {};
     this.style = {};
     this.classList = {
-      contains: function (name) { return element.classes.indexOf(name) >= 0; }
+      contains: function (name) { return element.classes.indexOf(name) >= 0; },
+      add: function (name) { if (element.classes.indexOf(name) < 0) element.classes.push(name); }
     };
   }
 
@@ -227,18 +228,21 @@ function descendantsOf(roots) {
   return found;
 }
 
+// href is the page's address; the Toolkit's page check skips a document without one, as it skips the about:blank a new
+// iframe holds first.
 var FakeDocument = class {
-  constructor() {
+  constructor(href) {
     this.head = new FakeElement('head');
     this.body = new FakeElement('body');
     this.head.isDocumentRoot = true;
     this.body.isDocumentRoot = true;
+    this.defaultView = { location: { href: href || 'about:blank' } };
   }
 
+  // The browser hands back the list it keeps for the tag, so asking for it is not a search; it is read here the moment
+  // it is asked for, which is all the scripts need of it.
   getElementsByTagName(tagName) {
-    searches++;
-
-    return liveList([this.head, this.body], function (element) { return element.tagName === tagName; });
+    return descendantsOf([this.head, this.body]).filter(function (element) { return element.tagName === tagName; });
   }
 
   getElementsByClassName(name) {
@@ -293,7 +297,7 @@ function frame(src) {
   var node = document.body.appendChild(new FakeElement('iframe'));
 
   node.src = src;
-  node.contentDocument = new FakeDocument();
+  node.contentDocument = new FakeDocument(src);
 
   return node.contentDocument;
 }

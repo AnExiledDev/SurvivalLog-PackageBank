@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- Now uses Exiled's Toolkit for its shared parts, so it needs Exiled's Toolkit 0.19.0 or newer.
+- Made for Survival Log 1.1.20719.
+
 ## 0.6.0
 
 - Each world can keep its own size limits: `LimitBySize`, `LargeSlots`, `MediumSlots`, `SmallSlots` and `DefenseSlots`. With Exiled's Toolkit 0.17.0 or newer, pick them for a new world in Customizable Difficulty, or change them for the world you are playing on the Mod Manager's Mods screen. `UiScale` stays the same for every world.

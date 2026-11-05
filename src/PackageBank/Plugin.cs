@@ -1,10 +1,12 @@
 using System;
-using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
+using ExiledToolkit;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
 using HarmonyLib;
 using PackageBank.Adapters;
 using PackageBank.Api;
@@ -13,11 +15,21 @@ using PackageBank.Core;
 namespace PackageBank;
 
 [BepInPlugin(Guid, "Package Bank", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, OptionalLive.ToolkitVersion)]
+[BepInDependency(ToolkitGuid, ToolkitVersion)]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.6.0";
+    private const string Version = "0.6.1";
+
+    /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
+    private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
+    private const string ToolkitVersion = ">=0.19.0";
+
+    private const string LogFileName = "package-bank.log";
+
+    /// <summary>The name the page script hands its panel to the Toolkit's UI size with.</summary>
+    private const string UiSizeName = "PackageBank";
+
     private const int MaxSlots = 100;
     private const string CoreNamespace = "PackageBank.Core";
     private const string AdaptersNamespace = "PackageBank.Adapters";
@@ -25,7 +37,7 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
-        OptionalUiSize.Bind(Config);
+        ModUiSize.Bind(Config, UiSizeName);
 
         var limitBySize = Config.Bind("Bank", "LimitBySize", true, new ConfigDescription(
             "Limit how many packages of each size the bank holds, set by LargeSlots, MediumSlots, SmallSlots and DefenseSlots. Set to false for no limit. Story items never have a limit.\n" +
@@ -47,19 +59,17 @@ public sealed class Plugin : BasePlugin
             "How many defense packages (sandbags, spike barriers and other defenses) the bank holds while LimitBySize is on. 4 by default, from 0 to 100.\n" +
             "LimitBySize 开启时仓库可存放的防御设施包裹（沙包、尖刺障碍等）数量。默认 4，可设为 0 到 100。",
             new AcceptableValueRange<int>(0, MaxSlots), WorldRule.Tag));
-        var log = new BankLog(Log, Path.Combine(Paths.BepInExRootPath, "package-bank.log"));
-        var harmony = new Harmony(Guid);
+        var log = new ModLog(Log, LogFileName);
+        var hooks = new PatchKit(new Harmony(Guid), log.Write);
         var bank = new GameBank(new GameShop(log.Write), log.Write);
-        var session = new BankSession(bank, new WebPage(log.Write), log.Write);
+        var session = new BankSession(bank, new BankPage(log.Write), log.Write);
 
         PackageBankApi.Use(bank, log.Write);
 
         log.Write($"===== Package Bank {Version} started");
-        InputGate.Apply(harmony, log.Write);
-        PageMessages.Apply(harmony, log.Write);
-        session.MenuHooked(MenuOpening.Apply(harmony, session.MenuOpened, log.Write));
+        session.MenuHooked(MenuOpening.Apply(hooks, session.MenuOpened));
 
-        OptionalLive.Watch(() =>
+        LiveSettings.Watch(() =>
         {
             var limits = new BankLimits(limitBySize.Value, largeSlots.Value, mediumSlots.Value, smallSlots.Value, defenseSlots.Value);
 
