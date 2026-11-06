@@ -485,6 +485,74 @@ public class PageScriptTests
         Assert.Equal("Bank", page.Text("menuEntries()[2].querySelector('.menu-btn-text').textContent"));
     }
 
+    /// <summary>The game's click menu open on a placed piece, with the bank's view sent and one page check run.</summary>
+    private static PageScript InPieceMenu(FakeGame game)
+    {
+        var page = new PageScript();
+
+        page.Run("openMenu(['Move', 'Dismantle'])");
+        page.Shop(ViewOf(game));
+        page.Poll();
+
+        return page;
+    }
+
+    [Fact]
+    public void The_click_menu_on_a_placed_piece_gets_a_pack_up_entry_that_packs_what_the_menu_is_open_on()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Table);
+        var page = InPieceMenu(game);
+
+        page.Click("menuPack()");
+
+        Assert.False(page.Is("menuBank()"));
+        Assert.Equal("Pack up", page.Text("menuEntries()[2].querySelector('.menu-btn-text').textContent"));
+        Assert.Equal(new PageCommand.PackMenu(), Assert.Single(page.Sent));
+    }
+
+    [Fact]
+    public void A_pack_up_entry_on_a_blocked_piece_is_locked_with_the_games_reason_and_sends_nothing()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Lamp, block: "Turn it off first");
+        var page = InPieceMenu(game);
+
+        page.Click("menuPack()");
+
+        Assert.True(page.Is("menuPack().classList.contains('locked')"));
+        Assert.Contains("Turn it off first", page.Text("menuPack().textContent"));
+        Assert.Empty(page.Sent);
+    }
+
+    [Fact]
+    public void A_pack_up_entry_on_a_story_piece_stays_usable_and_warns()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Recorder, isStory: true);
+        var page = InPieceMenu(game);
+
+        page.Click("menuPack()");
+
+        Assert.False(page.Is("menuPack().classList.contains('locked')"));
+        Assert.Contains("The story uses this", page.Text("menuPack().textContent"));
+        Assert.Equal(new PageCommand.PackMenu(), Assert.Single(page.Sent));
+    }
+
+    [Fact]
+    public void The_pack_up_entry_goes_once_the_piece_is_packed()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Table);
+        var page = InPieceMenu(game);
+
+        PackRun.PackMenu(game, Defaults);
+        page.Shop(ViewOf(game));
+
+        Assert.False(page.Is("menuPack()"));
+        Assert.Equal(2, page.Count("menuEntries()"));
+    }
+
     // ===== What a check costs =====
 
     /// <summary>Every page the bank adds to open, the HUD button and the shop's bank placed, and the click menu shut.</summary>

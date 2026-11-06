@@ -362,6 +362,10 @@ function menuBank() {
   return pageOf(/SelectMenu/).querySelector('.pb-menu-btn');
 }
 
+function menuPack() {
+  return pageOf(/SelectMenu/).querySelector('.pb-pack-btn');
+}
+
 // The build shop with its package list, one row per name, each ending in the shop's Refund button.
 function openShop(names) {
   var doc = frame('https://game.local/UI/BuildShop/BuildShop.html');

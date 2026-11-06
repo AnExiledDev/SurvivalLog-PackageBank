@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- New: **Pack up** turns placed furniture back into its package. Click a piece you can move and its menu gets a `Pack up` entry. The package goes on a free package spot in the yard, or into the bank when the yard has none.
+- A packed-up piece keeps its color, and the shop's Refund pays its current price for it, wherever it came from.
+- Pack up is greyed out while a storage piece still holds items, and while the game will not take the piece down (switched on, in use, a plant growing). It says why.
+- Story pieces can be packed up too. Their entry warns that the story uses them.
+- Made for Survival Log 1.1.20719.
+
 ## 0.6.1
 
 - Now uses Exiled's Toolkit for its shared parts, so it needs Exiled's Toolkit 0.19.0 or newer.

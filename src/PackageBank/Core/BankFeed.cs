@@ -135,8 +135,9 @@ public sealed class BankFeed
         _hasView = true;
         _viewPrint = print;
         _view = view;
-        // The game's pages want the view only while the build shop is open or the click menu is on a yard package.
-        _isViewForPages = view != null && (!view.Contains("\"shop\":null", StringComparison.Ordinal) || !view.Contains("\"menu\":null", StringComparison.Ordinal));
+        // The game's pages want the view only while the build shop is open or the click menu is on a yard package or a
+        // placed piece Pack up works on.
+        _isViewForPages = view != null && (!view.Contains("\"shop\":null", StringComparison.Ordinal) || !view.Contains("\"menu\":null", StringComparison.Ordinal) || !view.Contains("\"pack\":null", StringComparison.Ordinal));
 
         return view;
     }

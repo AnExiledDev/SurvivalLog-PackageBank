@@ -36,6 +36,9 @@ public abstract record PageCommand
     /// <summary>The Bank entry added to the game's click menu on a yard package.</summary>
     public sealed record StoreMenu : PageCommand;
 
+    /// <summary>The Pack up entry added to the game's click menu on a placed piece of furniture.</summary>
+    public sealed record PackMenu : PageCommand;
+
     /// <summary>The page has no script, usually because the web view reloaded.</summary>
     public sealed record NoScript : PageCommand;
 
@@ -58,6 +61,7 @@ public abstract record PageCommand
             ("takeout", 2) when TryNumber(parts[1], out var slot) => new TakeOut(slot),
             ("bank", 2) when TryNumber(parts[1], out var index) => new StoreShopRow(index),
             ("menubank", 1) => new StoreMenu(),
+            ("menupack", 1) => new PackMenu(),
             ("ready", 1) => new Ready(),
             ("noscript", 1) => new NoScript(),
             _ => new Unknown(message),

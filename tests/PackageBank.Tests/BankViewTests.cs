@@ -124,4 +124,46 @@ public class BankViewTests
         Assert.Equal("full", refused.GetProperty("why").GetString());
         Assert.Equal(JsonValueKind.Null, notOurs.ValueKind);
     }
+
+    [Fact]
+    public void The_click_menu_gets_a_pack_up_entry_only_on_a_placed_piece()
+    {
+        var game = new FakeGame();
+        var bed = game.Add(Bed);
+
+        game.Menu = bed.Id;
+        var onPackage = View(game).GetProperty("pack");
+        game.OpenMenuOnPiece(Table);
+        var onPiece = View(game).GetProperty("pack");
+
+        Assert.Equal(JsonValueKind.Null, onPackage.ValueKind);
+        Assert.Equal(JsonValueKind.Null, onPiece.GetProperty("why").ValueKind);
+        Assert.False(onPiece.GetProperty("intoBank").GetBoolean());
+    }
+
+    [Fact]
+    public void A_pack_up_entry_carries_why_it_is_refused_and_the_games_own_words_for_a_blocked_piece()
+    {
+        var game = new FakeGame();
+
+        game.OpenMenuOnPiece(Table, holdsItems: true);
+        var holds = View(game).GetProperty("pack");
+        game.OpenMenuOnPiece(Lamp, block: "Turn it off first");
+        var blocked = View(game).GetProperty("pack");
+
+        Assert.Equal("holdsItems", holds.GetProperty("why").GetString());
+        Assert.Equal(("blocked", "Turn it off first"), (blocked.GetProperty("why").GetString(), blocked.GetProperty("reason").GetString()));
+    }
+
+    [Fact]
+    public void A_pack_up_entry_says_when_the_package_would_go_into_the_bank_and_when_the_piece_is_a_story_piece()
+    {
+        var game = new FakeGame { FreeSpots = 0 };
+
+        game.OpenMenuOnPiece(Recorder, isStory: true);
+        var pack = View(game).GetProperty("pack");
+
+        Assert.True(pack.GetProperty("intoBank").GetBoolean());
+        Assert.True(pack.GetProperty("story").GetBoolean());
+    }
 }

@@ -15,11 +15,20 @@ public sealed record BankedPackage(BankEntry Entry, string Name, string? Icon, P
 public readonly record struct ShopRow(int Index, int ConfigId, int Paid);
 
 /// <summary>
+/// A placed piece of furniture the game's click menu is open on, one the game lets the player move. Size is the bank
+/// shelf its package goes on, null when the bank cannot take it. HoldsItems is a storage piece with something still in
+/// it. Block is the game's own reason it cannot be taken down right now (in use, switched on, a plant growing), null
+/// when it can. IsStory is a piece the story uses.
+/// </summary>
+public sealed record PlacedPiece(long Id, int ConfigId, string Name, PackageSize? Size, int Dye, bool HoldsItems, string? Block, bool IsStory);
+
+/// <summary>
 /// The bank and the home's packages, read in one go. FreeSpots is how many yard spots are empty. Shop is the build
 /// shop's package list while that shop is open, null otherwise. Menu is the id of what the game's click menu (Install,
-/// Return) is open on, null while that menu is shut.
+/// Return) is open on, null while that menu is shut. Piece is the placed furniture that menu is open on, when it is on
+/// one Pack up can work on.
 /// </summary>
-public sealed record Bank(IReadOnlyList<HomePackage> Home, IReadOnlyList<BankedPackage> Banked, BankBonus Bonus, int FreeSpots, IReadOnlyList<ShopRow>? Shop, long? Menu = null);
+public sealed record Bank(IReadOnlyList<HomePackage> Home, IReadOnlyList<BankedPackage> Banked, BankBonus Bonus, int FreeSpots, IReadOnlyList<ShopRow>? Shop, long? Menu = null, PlacedPiece? Piece = null);
 
 /// <summary>What a read of the game found.</summary>
 public abstract record BankRead
@@ -60,4 +69,13 @@ public interface IBankGame
 
     /// <summary>Puts the package on a free yard spot and clears its entry. The new package's id, or 0 when it could not.</summary>
     long TakeOut(BankEntry entry);
+
+    /// <summary>
+    /// Takes the placed piece down and puts its package, in its color, on a free yard spot, refundable at the shop's
+    /// price. False when it could not be done, with nothing changed.
+    /// </summary>
+    bool PackUp(PlacedPiece piece);
+
+    /// <summary>Takes the placed piece down straight into the bank under this entry. False when it could not, with nothing changed.</summary>
+    bool PackUpIntoBank(PlacedPiece piece, BankEntry entry);
 }

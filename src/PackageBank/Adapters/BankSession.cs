@@ -142,6 +142,9 @@ internal sealed class BankSession
             case PageCommand.StoreMenu:
                 Press("bank from the click menu", () => BankRun.StoreMenu(_game, _limits));
                 break;
+            case PageCommand.PackMenu:
+                Press("pack up from the click menu", () => PackRun.PackMenu(_game, _limits));
+                break;
             case PageCommand.TakeOut takeOut:
                 Press($"take out slot {takeOut.Slot}", () => BankRun.TakeOut(_game, takeOut.Slot));
                 break;

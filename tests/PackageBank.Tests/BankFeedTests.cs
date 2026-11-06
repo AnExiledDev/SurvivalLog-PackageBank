@@ -370,6 +370,10 @@ public class BankFeedTests
         public bool Store(HomePackage package, BankEntry entry, int? shopIndex) => Inner.Store(package, entry, shopIndex);
 
         public long TakeOut(BankEntry entry) => Inner.TakeOut(entry);
+
+        public bool PackUp(PlacedPiece piece) => Inner.PackUp(piece);
+
+        public bool PackUpIntoBank(PlacedPiece piece, BankEntry entry) => Inner.PackUpIntoBank(piece, entry);
     }
 
     /// <summary>A page that is not there yet: its calls do not land until IsDeaf is off.</summary>

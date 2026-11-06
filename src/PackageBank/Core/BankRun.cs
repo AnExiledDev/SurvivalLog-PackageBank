@@ -28,6 +28,18 @@ public abstract record BankOutcome
 
     public sealed record TakenOut(string Name) : BankOutcome;
 
+    /// <summary>A storage piece that still holds items: Pack up never empties one onto the floor.</summary>
+    public sealed record HoldsItems(string Name) : BankOutcome;
+
+    /// <summary>The game will not take the piece down right now; Reason is its own words for why.</summary>
+    public sealed record Blocked(string Name, string Reason) : BankOutcome;
+
+    /// <summary>No free yard spot, and the bank cannot take the piece either.</summary>
+    public sealed record NoRoom(string Name) : BankOutcome;
+
+    /// <summary>The piece is a package again, in the yard or, with the yard full, in the bank.</summary>
+    public sealed record PackedUp(string Name, bool IsIntoBank, bool IsStory) : BankOutcome;
+
     public sealed record Failed : BankOutcome;
 }
 
@@ -114,12 +126,14 @@ public static class BankRun
         if (package.Size is not { } size) return new BankOutcome.NotBankable(package.Name);
         if (package.IsBusy) return new BankOutcome.Busy(package.Name);
 
-        var capacity = limits.Capacity(size, bank.Bonus);
-
-        if (capacity is { } cap && bank.Banked.Count(banked => banked.Size == size) >= cap) return new BankOutcome.Full(size, cap);
+        if (!HasRoom(bank, limits, size)) return new BankOutcome.Full(size, limits.Capacity(size, bank.Bonus) ?? 0);
 
         return null;
     }
+
+    /// <summary>Whether a size has room for one more package in the bank.</summary>
+    public static bool HasRoom(Bank bank, BankLimits limits, PackageSize size) =>
+        limits.Capacity(size, bank.Bonus) is not { } cap || bank.Banked.Count(banked => banked.Size == size) < cap;
 
     private static BankOutcome StoreFound(IBankGame game, BankLimits limits, Bank bank, HomePackage? package, int? shopIndex)
     {

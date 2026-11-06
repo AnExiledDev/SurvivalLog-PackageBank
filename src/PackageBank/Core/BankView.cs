@@ -25,6 +25,7 @@ public static class BankView
         json.Append(",\"bank\":[").Append(string.Join(",", bank.Banked.Select(Banked))).Append(']');
         json.Append(",\"takeWhy\":").Append(bank.FreeSpots > 0 ? "null" : Str("noSpot"));
         json.Append(",\"menu\":").Append(Menu(bank, limits));
+        json.Append(",\"pack\":").Append(Pack(bank, limits));
         json.Append(",\"shop\":").Append(bank.Shop is null ? "null" : "[" + string.Join(",", bank.Shop.Select(row => ShopRow(bank, limits, row)).Where(row => row != null)) + "]");
 
         return json.Append('}').ToString();
@@ -61,6 +62,30 @@ public static class BankView
         var package = bank.Home.FirstOrDefault(candidate => candidate.Id == bank.Menu);
 
         return package is null ? "null" : "{\"why\":" + Why(BankRun.Refusal(bank, limits, package)) + "}";
+    }
+
+    /// <summary>
+    /// Null unless the click menu is open on a placed piece Pack up can work on. Why is the reason it would refuse,
+    /// "blocked" carrying the game's own words in Reason; IntoBank says the package would go into the bank.
+    /// </summary>
+    private static string Pack(Bank bank, BankLimits limits)
+    {
+        if (bank.Piece is not { } piece) return "null";
+
+        var refusal = PackRun.Refusal(bank, limits, piece);
+        var why = refusal switch
+        {
+            null => "null",
+            BankOutcome.HoldsItems => Str("holdsItems"),
+            BankOutcome.Blocked => Str("blocked"),
+            _ => Str("noRoom"),
+        };
+
+        return "{\"why\":" + why
+            + ",\"reason\":" + Str((refusal as BankOutcome.Blocked)?.Reason)
+            + ",\"intoBank\":" + Bool(refusal is null && PackRun.GoesToBank(bank))
+            + ",\"story\":" + Bool(piece.IsStory)
+            + "}";
     }
 
     /// <summary>A shop row with no bought yard package behind it gets no Bank button, so it is left out.</summary>

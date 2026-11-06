@@ -214,6 +214,133 @@ internal sealed class GameBank : IBankGame
         }
     }
 
+    /// <summary>
+    /// Makes the package first, on the free yard spot nearest the player as Take out does, then takes the piece down the
+    /// way the pawn shop does (power, story and tray clean-up, no materials back). A piece that will not come down takes
+    /// its new package with it, so a failure can neither lose the piece nor copy it. The package is then marked as bought
+    /// at an unknown price, which the game's own Refund pays at the shop's price.
+    /// </summary>
+    public bool PackUp(PlacedPiece piece)
+    {
+        try
+        {
+            var game = LoadedGame();
+
+            if (game == null) return false;
+
+            var (_, _, agents, role) = game.Value;
+            var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+            var furniture = PlacedFurniture(agents, piece.Id);
+
+            if (build == null || furniture == null) return false;
+
+            build.ReconcilePackagePoints(TakeOutReason);
+
+            if (build.GetFreePackagePointCount() <= 0) return false;
+
+            var id = build.CreateBagFurniture(piece.ConfigId, PositionOf(role), false, 0);
+
+            if (id == 0) return false;
+
+            if (!TakeDown(agents, furniture, piece))
+            {
+                build.DestroyBagFurniture(id);
+
+                return false;
+            }
+
+            _log($"packed up {piece.Name} (furniture {piece.ConfigId}, piece {piece.Id}) as package {id}");
+            Step("mark the package refundable", () => build.AddPurchased(id, 0, PackRun.PaidUnknown));
+            Step("give back the color", () => Dye(agents, id, piece.Dye));
+            AfterPackUp(build, piece);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("pack up", ex);
+
+            return false;
+        }
+    }
+
+    /// <summary>The entry is written before the piece comes down, and taken back out only while the piece still stands.</summary>
+    public bool PackUpIntoBank(PlacedPiece piece, BankEntry entry)
+    {
+        try
+        {
+            var game = LoadedGame();
+            var counters = Counters();
+
+            if (game == null || counters == null) return false;
+
+            var (_, _, agents, role) = game.Value;
+            var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+            var furniture = PlacedFurniture(agents, piece.Id);
+
+            if (build == null || furniture == null) return false;
+
+            WriteEntry(counters, entry);
+
+            if (!TakeDown(agents, furniture, piece))
+            {
+                ClearEntry(counters, entry.Slot);
+
+                return false;
+            }
+
+            _log($"packed up {piece.Name} (furniture {piece.ConfigId}, piece {piece.Id}) into slot {entry.Slot}");
+            AfterPackUp(build, piece);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("pack up into the bank", ex);
+
+            return false;
+        }
+    }
+
+    /// <summary>True once the piece is gone, even when the game threw part way through taking it down.</summary>
+    private bool TakeDown(AgentManager agents, Furniture furniture, PlacedPiece piece)
+    {
+        try
+        {
+            AE_DisableFurniture.DemolishFurniture(furniture);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("take the furniture down", ex);
+        }
+
+        var isGone = PlacedFurniture(agents, piece.Id) == null;
+
+        if (!isGone) _log($"{piece.Name} (piece {piece.Id}) did not come down, so nothing was packed");
+
+        return isGone;
+    }
+
+    /// <summary>The piece is already a package by now: the click menu on it is shut and the shop counts again.</summary>
+    private void AfterPackUp(BuildComponent build, PlacedPiece piece)
+    {
+        Step("close the click menu", () => GameMenu.CloseIfOn(piece.Id));
+        _shop.Recount(build);
+    }
+
+    /// <summary>A step that only finishes what is already done, so it fails on its own and is logged once per kind.</summary>
+    private void Step(string operation, Action step)
+    {
+        try
+        {
+            step();
+        }
+        catch (Exception ex)
+        {
+            ReportOnce(operation, ex);
+        }
+    }
+
     private void Dye(AgentManager agents, long id, int dye)
     {
         var bag = agents.GetAgent(id)?.TryCast<BagFurniture>();
@@ -320,7 +447,12 @@ internal sealed class GameBank : IBankGame
         // The free spot count goes in as itself: the home can gain spots with no package moving.
         print.Add(build.GetFreePackagePointCount());
         print.Add(_shop.Print());
-        print.Add(MenuOpenOn() ?? 0);
+
+        var menuOn = MenuOpenOn();
+
+        print.Add(menuOn ?? 0);
+        // A placed piece's contents, power and plant change with nothing above moving, so the piece itself goes in.
+        print.Add(PieceOf(config, agents, (config.Pointer, GameLanguage.IsChinese(), Icons() != null), menuOn)?.GetHashCode() ?? 0);
         print.Add(Icons() != null);
 
         return print.Value;
@@ -369,7 +501,78 @@ internal sealed class GameBank : IBankGame
             banked.Add(new BankedPackage(entry, info.Name, info.Icon, info.Size));
         }
 
-        return new BankRead.Ready(new Bank(home, banked, contents.Bonus, build.GetFreePackagePointCount(), _shop.Rows(), MenuOpenOn()));
+        var menuOn = MenuOpenOn();
+
+        return new BankRead.Ready(new Bank(home, banked, contents.Bonus, build.GetFreePackagePointCount(), _shop.Rows(), menuOn, PieceOf(config, agents, scope, menuOn)));
+    }
+
+    /// <summary>
+    /// The placed furniture the click menu is open on, when it is one the game lets the player move (so a spot can take
+    /// its package again); null for a yard package, a fixture of the home, or a shut menu. A broken read costs only the
+    /// Pack up entry.
+    /// </summary>
+    private PlacedPiece? PieceOf(ConfigManager config, AgentManager agents, (IntPtr, bool, bool) scope, long? menuOn)
+    {
+        if (menuOn is not { } id) return null;
+
+        try
+        {
+            return ReadPiece(config, agents, scope, id);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("read the placed furniture", ex);
+
+            return null;
+        }
+    }
+
+    private PlacedPiece? ReadPiece(ConfigManager config, AgentManager agents, (IntPtr, bool, bool) scope, long id)
+    {
+        var furniture = PlacedFurniture(agents, id);
+
+        if (furniture == null) return null;
+
+        var configId = furniture.AgentConfigId;
+        var row = Row(config, configId);
+
+        if (row?.MoveFunc == null || row.MoveFunc.Count == 0) return null;
+
+        var info = Info(config, scope, configId);
+        var isStory = StoryFurniture(config).Contains(configId) || furniture._IsGuidanceFurniture_k__BackingField || furniture.IsSoleMainEventAnchor(configId);
+
+        return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory);
+    }
+
+    /// <summary>A placed piece still standing, not a package and not one being carried or put down.</summary>
+    private static Furniture? PlacedFurniture(AgentManager agents, long id)
+    {
+        var furniture = agents.GetAgent(id)?.TryCast<Furniture>();
+
+        return furniture != null && furniture._IsShow_k__BackingField ? furniture : null;
+    }
+
+    private static bool HoldsItems(Furniture furniture, Config_Furniture row)
+    {
+        if (row._BagId_k__BackingField <= 0) return false;
+
+        var items = GameSingleton.Existing<BattleLogicWorld>()?._ItemManager?.GetItemDataList(furniture.InstanceId);
+
+        return items != null && items.Count > 0;
+    }
+
+    /// <summary>
+    /// The game's own reason it will not take the piece down, the one its Layout screen greys the remove button with: a
+    /// plant on it (unless the pot is idle or the plant poor), or anything AE_DisableFurniture refuses (in use, switched
+    /// on, busy, a robot out, something on top).
+    /// </summary>
+    private static string? BlockOf(Furniture furniture)
+    {
+        var plant = AgentTools.GetAgentComponent<PlantComponent>(furniture);
+
+        if (plant != null && plant._State_k__BackingField is not PlantState.Idle and not PlantState.Poor) return GameKey.Text_FF_PlantingCantRemove;
+
+        return AE_DisableFurniture.TryGetDemolishBlockTip(furniture, out var tip) ? GameNames.NonEmpty(tip) ?? "" : null;
     }
 
     /// <summary>Only the yard's numbered spots: the car's spot and the boxes by the doors are left alone.</summary>

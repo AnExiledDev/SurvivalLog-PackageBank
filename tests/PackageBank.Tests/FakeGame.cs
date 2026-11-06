@@ -20,6 +20,15 @@ internal sealed class FakeGame : IBankGame
     /// <summary>The package the game's click menu is open on, null while it is shut.</summary>
     public long? Menu { get; set; }
 
+    /// <summary>The placed furniture the click menu is open on, when it is a piece Pack up works on.</summary>
+    public PlacedPiece? Piece { get; private set; }
+
+    /// <summary>Every placed piece Pack up took down, in order.</summary>
+    public List<PlacedPiece> TakenDown { get; } = new();
+
+    /// <summary>The game refusing to take a placed piece down.</summary>
+    public bool IsPackUpBroken { get; set; }
+
     /// <summary>Web icon paths, as the plugin finds them under the WebUI folder; furniture not listed has none.</summary>
     public Dictionary<int, string> Icons { get; } = new();
 
@@ -73,6 +82,17 @@ internal sealed class FakeGame : IBankGame
         return package;
     }
 
+    /// <summary>A placed piece of furniture with the click menu open on it.</summary>
+    public PlacedPiece OpenMenuOnPiece(int configId, int dye = 0, bool holdsItems = false, string? block = null, bool isStory = false)
+    {
+        var piece = new PlacedPiece(_nextId++, configId, NameOf(configId), SizeOf(configId), dye, holdsItems, block, isStory);
+
+        Piece = piece;
+        Menu = piece.Id;
+
+        return piece;
+    }
+
     public BankState State()
     {
         States++;
@@ -93,6 +113,7 @@ internal sealed class FakeGame : IBankGame
         print.Add(IsChinese);
         print.Add(FreeSpots);
         print.Add(Menu ?? -1);
+        print.Add(Piece?.GetHashCode() ?? 0);
         print.Add(Shop == null ? -1 : Shop.Count);
 
         foreach (var row in Shop ?? new List<ShopRow>()) print.Add(row.GetHashCode());
@@ -113,7 +134,7 @@ internal sealed class FakeGame : IBankGame
         var contents = BankCounters.Read(Counters);
         var banked = contents.Entries.Select(entry => new BankedPackage(entry, NameOf(entry.ConfigId), Icons.GetValueOrDefault(entry.ConfigId), SizeOf(entry.ConfigId))).ToList();
 
-        return new BankRead.Ready(new Bank(Home.ToList(), banked, contents.Bonus, FreeSpots, Shop?.ToList(), Menu));
+        return new BankRead.Ready(new Bank(Home.ToList(), banked, contents.Bonus, FreeSpots, Shop?.ToList(), Menu, Piece));
     }
 
     public bool Store(HomePackage package, BankEntry entry, int? shopIndex)
@@ -140,6 +161,36 @@ internal sealed class FakeGame : IBankGame
         foreach (var key in BankCounters.Keys(entry.Slot)) Counters.Remove(key);
 
         return package.Id;
+    }
+
+    public bool PackUp(PlacedPiece piece)
+    {
+        if (IsPackUpBroken) return false;
+
+        Home.Add(new HomePackage(_nextId++, piece.ConfigId, NameOf(piece.ConfigId), null, SizeOf(piece.ConfigId), false, true, PackRun.PaidUnknown, 0, piece.Dye));
+        FreeSpots--;
+        TakeDown(piece);
+
+        return true;
+    }
+
+    public bool PackUpIntoBank(PlacedPiece piece, BankEntry entry)
+    {
+        if (IsPackUpBroken) return false;
+
+        foreach (var (key, value) in BankCounters.Write(entry)) Counters[key] = value;
+
+        TakeDown(piece);
+
+        return true;
+    }
+
+    /// <summary>The piece is gone, and the game shuts the click menu that was on it.</summary>
+    private void TakeDown(PlacedPiece piece)
+    {
+        TakenDown.Add(piece);
+        Piece = null;
+        Menu = null;
     }
 
     private PackageSize? SizeOf(int configId) => Sizes.TryGetValue(configId, out var size) ? size : null;

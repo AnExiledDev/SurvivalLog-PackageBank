@@ -1,7 +1,8 @@
 // Package Bank's web half. Runs in Root.html, the document every game page iframe sits in. Draws the bank panel over
 // all of them, puts a button in the HUD's tool column (bottom left, above the phone and bag buttons) built like the
 // game's own buttons there, and while the build shop is open adds a Bank button beside each Refund button of its
-// package list and the banked packages under that list, and a Bank entry in the click menu of a yard package. Talks to the plugin through
+// package list and the banked packages under that list, a Bank entry in the click menu of a yard package, and a Pack up
+// entry in the click menu of a placed piece of furniture. Talks to the plugin through
 // vuplex.postMessage("slmod|packagebank|<verb>") and is driven by window.__slpkgbank. The HUD button, the bridge and
 // the checks of the game's pages come from Exiled's Toolkit's page API (window.ExiledToolkit).
 (function () {
@@ -12,6 +13,7 @@
   // The bank's place in the HUD's tool column when Exiled's Toolkit lays it out in columns of four.
   var DOCK_ORDER = '20';
   var MENU_CLASS = 'pb-menu-btn';
+  var PACK_CLASS = 'pb-pack-btn';
   var STYLE_ID = 'pb-style';
   var SHOP_STYLE_ID = 'pb-shop-style';
   var SHOP_BANK_ID = 'pb-shop-bank';
@@ -32,7 +34,10 @@
     emptyHome: 'No packages in the yard.', emptyHomeHint: 'Packages you buy in the build shop land here.',
     emptyBank: 'The bank is empty.', emptyBankHint: 'Press Bank on a package in the yard to store it here.',
     emptyShelf: 'Nothing from the {0} shelf here.', showing: 'Showing {0} only', showAll: 'Show all',
-    escClose: 'Esc to close'
+    escClose: 'Esc to close', packUp: 'Pack up', holdsItems: 'Empty it first: it still holds items',
+    noRoom: 'No free package spot, and no room in the bank',
+    packToBank: 'Goes into the bank: the yard has no free package spot',
+    storyWarn: 'The story uses this. Install it again if the story stops moving.'
   };
   // Arrows for Bank and Take out, and the warning sign of the no-spot notice, on the same 24-unit grid.
   var ARROW_IN_PATH = 'M4 11h11.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H4z';
@@ -42,7 +47,8 @@
   var PIP_LIMIT = 12;
 
   // filter: the shelf key both lists are narrowed to, or null for all of them.
-  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null, filter: null };
+  // menu: the click menu on a yard package, pack: the click menu on a placed piece of furniture.
+  var state = { data: emptyData(), isOpen: false, isLive: false, shop: null, menu: null, pack: null, filter: null };
   var ui = null;
   var isBusy = false;
   var busyTimer = 0;
@@ -616,10 +622,11 @@
   }
 
   // The panel's view while the build shop or the click menu is open, null otherwise; the shop's buttons and bank rows,
-  // and the menu's Bank entry, are drawn from it.
+  // and the menu's Bank and Pack up entries, are drawn from it.
   function shop(data) {
     state.shop = data && data.shop ? data : null;
     state.menu = data && data.menu ? data.menu : null;
+    state.pack = data && data.pack ? data.pack : null;
     shopVersion++;
     refreshPages();
   }
@@ -659,18 +666,17 @@
     if (menuWatch) menuWatch.refresh();
   }
 
-  // Shown while the game's click menu is open on a yard package the bank lists, last in its main column. Greyed with
-  // the reason in the menu's own hover tip when the bank would refuse it. The press names no package: the plugin banks
-  // whatever the menu is open on at that moment.
-  // With the menu not on a yard package (most of the time) this searches nothing: the entry placed is kept on the
-  // page's document.
+  // Shown while the game's click menu is open on a yard package the bank lists (Bank) or on a placed piece of furniture
+  // the player can move (Pack up), last in its main column. Greyed with the reason in the menu's own hover tip when the
+  // plugin would refuse it. The press names nothing: the plugin acts on whatever the menu is open on at that moment.
+  // With the menu on neither (most of the time) this searches nothing: the entry placed is kept on the page's document.
   function patchMenu(doc) {
     watchMenu(doc);
 
-    var why = state.menu ? state.menu.why || '' : null;
+    var item = menuItem();
     var existing = doc.pbMenuEntry && doc.pbMenuEntry.isConnected ? doc.pbMenuEntry : null;
 
-    if (why === null) {
+    if (item === null) {
       if (existing) existing.remove();
 
       return;
@@ -685,11 +691,36 @@
       return;
     }
 
-    if (existing && existing.getAttribute('data-why') === why) return;
+    if (existing && existing.getAttribute('data-key') === item.key) return;
     if (existing) existing.remove();
 
-    doc.pbMenuEntry = menuEntry(doc, why);
+    doc.pbMenuEntry = menuEntry(doc, item);
     (container.querySelector('.menu-col') || container).appendChild(doc.pbMenuEntry);
+  }
+
+  // What the click menu's own entry says and does, or null when the menu is on nothing the bank works on. The key
+  // changes with anything drawn, so an unchanged entry is left alone.
+  function menuItem() {
+    var item = state.menu ? bankItem(state.menu) : state.pack ? packItem(state.pack) : null;
+
+    if (item) item.key = [item.action, item.isLocked, item.tip].join('|');
+
+    return item;
+  }
+
+  function bankItem(menu) {
+    var why = menu.why || '';
+
+    return { cls: MENU_CLASS, label: say('bank'), tip: why ? say(why) : '', isLocked: !!why, action: 'menubank' };
+  }
+
+  // A blocked piece shows the game's own reason. A story piece warns either way, as packing it is allowed.
+  function packItem(pack) {
+    var tip = pack.why === 'blocked' ? pack.reason || '' : pack.why ? say(pack.why) : pack.intoBank ? say('packToBank') : '';
+
+    if (pack.story) tip = tip ? tip + ' ' + say('storyWarn') : say('storyWarn');
+
+    return { cls: PACK_CLASS, label: say('packUp'), tip: tip, isLocked: !!pack.why, action: 'menupack' };
   }
 
   // The menu draws its entries a moment after it opens; adding the Bank entry the moment they appear, rather than at
@@ -705,22 +736,22 @@
     }).observe(doc.body, { childList: true, subtree: true });
   }
 
-  function menuEntry(doc, why) {
-    var node = make(doc, 'div', 'menu-btn show ' + MENU_CLASS + (why ? ' locked' : ''));
+  function menuEntry(doc, item) {
+    var node = make(doc, 'div', 'menu-btn show ' + item.cls + (item.isLocked ? ' locked' : ''));
     var svg = boxIcon(doc, 'menu-btn-icon');
 
     node.setAttribute('data-interactive', '');
-    node.setAttribute('data-why', why);
+    node.setAttribute('data-key', item.key);
     svg.setAttribute('fill', 'currentColor');
     node.appendChild(svg);
-    node.appendChild(make(doc, 'span', 'menu-btn-text', say('bank')));
+    node.appendChild(make(doc, 'span', 'menu-btn-text', item.label));
 
-    if (why) node.appendChild(make(doc, 'div', 'menu-btn-tooltip', say(why)));
+    if (item.tip) node.appendChild(make(doc, 'div', 'menu-btn-tooltip', item.tip));
 
     node.addEventListener('click', function (e) {
       e.stopPropagation();
 
-      if (!why) sendAction('menubank');
+      if (!item.isLocked) sendAction(item.action);
     });
 
     return node;

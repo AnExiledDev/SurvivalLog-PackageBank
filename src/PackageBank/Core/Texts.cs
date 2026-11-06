@@ -22,6 +22,15 @@ public static class Texts
     public static readonly Phrase Stored = new("{0} put in the bank.", "{0}已存入仓库。");
     public static readonly Phrase NoSpot = new("No free package spot at home: install, refund or bank a package first.", "家里没有空的包裹位置：请先安装、退还或存入一个包裹。");
     public static readonly Phrase TakenOut = new("{0} taken out of the bank.", "{0}已从仓库取出。");
+    public static readonly Phrase HoldsItems = new("Empty {0} first: it still holds items.", "请先清空{0}：里面还有物品。");
+
+    /// <summary>{1} is the game's own reason.</summary>
+    public static readonly Phrase Blocked = new("{0} can't be packed up right now: {1}", "{0}现在无法打包：{1}");
+
+    public static readonly Phrase NoRoom = new("No free package spot in the yard, and no room in the bank for {0}.", "院子里没有空的包裹位置，仓库也放不下{0}。");
+    public static readonly Phrase PackedUp = new("{0} packed up. Its package is in the yard.", "{0}已打包，包裹在院子里。");
+    public static readonly Phrase PackedUpIntoBank = new("{0} packed up into the bank: the yard had no free package spot.", "{0}已打包存入仓库：院子里没有空的包裹位置。");
+    public static readonly Phrase StoryNote = new("The story uses it: install it again if the story stops moving.", "剧情会用到它：如果剧情没有进展，请重新安装。");
     /// <summary>Who a toast is from, on its first line.</summary>
     public static readonly Phrase Source = new("Package Bank", "包裹仓库");
 
@@ -67,6 +76,11 @@ public static class Texts
         ("showing", new("Showing {0} only", "只显示「{0}」")),
         ("showAll", new("Show all", "显示全部")),
         ("escClose", new("Esc to close", "按 Esc 关闭")),
+        ("packUp", new("Pack up", "打包")),
+        ("holdsItems", new("Empty it first: it still holds items", "请先清空：里面还有物品")),
+        ("noRoom", new("No free package spot, and no room in the bank", "没有空的包裹位置，仓库也放不下")),
+        ("packToBank", new("Goes into the bank: the yard has no free package spot", "将存入仓库：院子里没有空的包裹位置")),
+        ("storyWarn", new("The story uses this. Install it again if the story stops moving.", "剧情会用到它。如果剧情没有进展，请重新安装。")),
     };
 
     public static IReadOnlyList<Phrase> All { get; } = Collect();
@@ -82,7 +96,7 @@ public static class Texts
 
     private static List<Phrase> Collect()
     {
-        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, Failed, Large, Medium, Small, Story, Defense };
+        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, HoldsItems, Blocked, NoRoom, PackedUp, PackedUpIntoBank, StoryNote, Failed, Large, Medium, Small, Story, Defense };
 
         all.AddRange(Page.Select(word => word.Phrase));
 
@@ -104,9 +118,20 @@ public static class OutcomeMessage
         BankOutcome.Stored stored => Texts.Stored.Say(isChinese, stored.Name),
         BankOutcome.NoSpot => Texts.NoSpot.Pick(isChinese),
         BankOutcome.TakenOut takenOut => Texts.TakenOut.Say(isChinese, takenOut.Name),
+        BankOutcome.HoldsItems holds => Texts.HoldsItems.Say(isChinese, holds.Name),
+        BankOutcome.Blocked blocked => Texts.Blocked.Say(isChinese, blocked.Name, blocked.Reason),
+        BankOutcome.NoRoom noRoom => Texts.NoRoom.Say(isChinese, noRoom.Name),
+        BankOutcome.PackedUp packed => PackedUp(packed, isChinese),
         BankOutcome.Failed => Texts.Failed.Pick(isChinese),
         _ => Texts.Failed.Pick(isChinese),
     };
+
+    private static string PackedUp(BankOutcome.PackedUp packed, bool isChinese)
+    {
+        var line = (packed.IsIntoBank ? Texts.PackedUpIntoBank : Texts.PackedUp).Say(isChinese, packed.Name);
+
+        return packed.IsStory ? line + (isChinese ? "" : " ") + Texts.StoryNote.Pick(isChinese) : line;
+    }
 }
 
 /// <summary>The panel's own words in the game's language, as the statement that hands them to page.js before every call.</summary>
