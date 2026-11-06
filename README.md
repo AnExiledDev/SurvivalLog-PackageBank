@@ -14,7 +14,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
 - **Defenses:** sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own. With Defense Manager 0.9.0 or newer, a banked defense can be installed straight from Defense Manager's panel: it is taken out onto a free package spot and installed.
 - **Buttons say why not:** a greyed-out button shows the reason. A full shelf says `bank full` once on its group in the yard list, no free package spot shows one notice at the top of the bank list, and a package being moved or installed says so under its name.
-- **UI size:** with Exiled's Toolkit 0.10.0 or newer, its UI size setting (`UiScale`) draws the bank panel bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size. With Toolkit 0.11.0 or newer, Package Bank's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
+- **UI size:** Exiled's Toolkit's UI size setting (`UiScale`) draws the bank panel bigger or smaller, as far as the panel still fits on the screen. The HUD button and the Bank buttons in the build shop and the click menu keep the game's size. Package Bank's own `UiScale` under Interface sets a size for this mod alone; at 0, the default, it follows the Toolkit's.
 
 Works in English and Chinese.
 
@@ -48,7 +48,7 @@ Delete `PackageBank.dll` from `BepInEx\plugins`. Take everything out of the bank
 
 ## Configuration
 
-See [CONFIG.md](CONFIG.md). With Exiled's Toolkit 0.17.0 or newer, each world can keep its own size limits: pick them for a new world in Customizable Difficulty, or change them for that world alone on the Mod Manager's Mods screen.
+See [CONFIG.md](CONFIG.md). Each world can keep its own size limits: pick them for a new world in Customizable Difficulty, or change them for that world alone on the Mod Manager's Mods screen.
 
 ## Troubleshooting
 

@@ -244,7 +244,7 @@ internal sealed class GameBank : IBankGame
 
             if (!TakeDown(agents, furniture, piece))
             {
-                build.DestroyBagFurniture(id);
+                Undo(piece, "remove the new package", () => build.DestroyBagFurniture(id));
 
                 return false;
             }
@@ -284,7 +284,7 @@ internal sealed class GameBank : IBankGame
 
             if (!TakeDown(agents, furniture, piece))
             {
-                ClearEntry(counters, entry.Slot);
+                Undo(piece, "clear the new bank entry", () => ClearEntry(counters, entry.Slot));
 
                 return false;
             }
@@ -314,11 +314,29 @@ internal sealed class GameBank : IBankGame
             ReportOnce("take the furniture down", ex);
         }
 
-        var isGone = PlacedFurniture(agents, piece.Id) == null;
+        // The game hides the piece before it drops it from the agent list, so a throw in between leaves it hidden but
+        // still in the world and the save. Finish the removal the game started; only a dropped piece counts as gone.
+        if (agents.GetAgent(piece.Id) != null && PlacedFurniture(agents, piece.Id) == null)
+            Step("finish taking the furniture down", () => agents.RemoveFurniture(piece.Id));
+
+        var isGone = agents.GetAgent(piece.Id) == null;
 
         if (!isGone) _log($"{piece.Name} (piece {piece.Id}) did not come down, so nothing was packed");
 
         return isGone;
+    }
+
+    /// <summary>A failed undo leaves the piece standing and its package too, so it is logged every time, not once.</summary>
+    private void Undo(PlacedPiece piece, string operation, Action undo)
+    {
+        try
+        {
+            undo();
+        }
+        catch (Exception ex)
+        {
+            _log($"could not {operation} after {piece.Name} (piece {piece.Id}) stayed up, so there may be two of it: {ex}");
+        }
     }
 
     /// <summary>The piece is already a package by now: the click menu on it is shut and the shop counts again.</summary>

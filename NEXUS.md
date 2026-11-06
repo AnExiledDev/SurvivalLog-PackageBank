@@ -18,7 +18,7 @@ Your yard only has so many package spots. Package Bank gives you somewhere to pu
 [*][b]Story Items[/b]: free one-off packages, such as the Recorder from the hospital, go on their own shelf with no limit.[/*]
 [*][b]Defenses[/b]: sandbags, spike barriers and the other defense packages go on a Defenses shelf of their own, 4 by default. With Defense Manager 0.9.0 or newer, a banked defense can be installed straight from Defense Manager's panel.[/*]
 [*][b]Buttons say why not[/b]: a greyed-out button shows the reason, like a full shelf or no free package spot.[/*]
-[*][b]UI size[/b]: with Exiled's Toolkit 0.10.0 or newer, its UI size setting draws the bank panel bigger or smaller, as far as it still fits on the screen. With 0.11.0 or newer, Package Bank's own UiScale setting can set a size for this mod alone.[/*]
+[*][b]UI size[/b]: Exiled's Toolkit's UI size setting draws the bank panel bigger or smaller, as far as it still fits on the screen. Package Bank's own UiScale setting can set a size for this mod alone.[/*]
 [/list]
 
 [size=5]Hotkeys[/size]
@@ -65,7 +65,7 @@ Works in English and Chinese.
 Take everything out of the bank first, then delete [font=Courier New]PackageBank.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Packages still in the bank are lost once the mod is gone.
 
 [size=5]Configuration[/size]
-To change the size limits or turn them off, edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). With Exiled's Toolkit 0.17.0 or newer, each world can keep its own size limits: pick them for a new world in Customizable Difficulty, or, while you play, change them for that world alone on the Mods screen.
+To change the size limits or turn them off, edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed, or do it in game on the Mod Manager's Mods screen (see [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]; the cfg file explains each setting in English and Chinese). Each world can keep its own size limits: pick them for a new world in Customizable Difficulty, or, while you play, change them for that world alone on the Mods screen.
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\package-bank.log[/font].
@@ -91,7 +91,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [*][b]剧情物品[/b]：免费的一次性包裹（例如医院里的记录仪）放在单独的一栏，不限数量。[/*]
 [*][b]防御设施[/b]：沙包、尖刺障碍等防御设施包裹放在单独的一栏，默认 4 个。使用 Defense Manager 0.9.0 或更新版本时，可以直接在 Defense Manager 的面板中安装仓库里的防御设施。[/*]
 [*][b]按钮会说明原因[/b]：变灰的按钮会显示原因，例如这一类已存满或没有空的包裹位。[/*]
-[*][b]界面大小[/b]：安装 Exiled's Toolkit 0.10.0 或更新版本后，可以用它的界面大小设置放大或缩小仓库面板，最大放到面板仍能完整显示在屏幕上为止。0.11.0 或更新版本还可以用 Package Bank 自己的 UiScale 设置单独调整本模组的大小。[/*]
+[*][b]界面大小[/b]：Exiled's Toolkit 的界面大小设置可以放大或缩小仓库面板，最大放到面板仍能完整显示在屏幕上为止。也可以用 Package Bank 自己的 UiScale 设置单独调整本模组的大小。[/*]
 [/list]
 
 [size=5]快捷键[/size]
@@ -134,7 +134,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]PackageBank.dll[/font]。卸载前请先把仓库里的包裹全部取出，模组删除后仓库中的包裹会丢失。
 
 [size=5]配置[/size]
-如需修改各尺寸的上限或关闭上限，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。也可以在游戏内 Mod Manager 的「模组」界面修改。装了 Exiled's Toolkit 0.17.0 或更新版本时，每个存档都可以有自己的尺寸上限：新存档可以在「自定义难度」里选，游戏中也可以在「模组」界面只为当前存档修改。
+如需修改各尺寸的上限或关闭上限，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。也可以在游戏内 Mod Manager 的「模组」界面修改。每个存档都可以有自己的尺寸上限：新存档可以在「自定义难度」里选，游戏中也可以在「模组」界面只为当前存档修改。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\package-bank.log[/font]。
