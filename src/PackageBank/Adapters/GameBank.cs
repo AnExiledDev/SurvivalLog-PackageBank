@@ -541,8 +541,11 @@ internal sealed class GameBank : IBankGame
         var info = Info(config, scope, configId);
         var isStory = StoryFurniture(config).Contains(configId) || furniture._IsGuidanceFurniture_k__BackingField || furniture.IsSoleMainEventAnchor(configId);
 
-        return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory);
+        return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory, IsInLayout());
     }
+
+    /// <summary>The game's Layout screen (plan mode) is open: there a click on a yard package does nothing unless an install is under way.</summary>
+    private static bool IsInLayout() => GameSingleton.Existing<BattleLogicWorld>()?._IsPlanMode_k__BackingField ?? false;
 
     /// <summary>A placed piece still standing, not a package and not one being carried or put down.</summary>
     private static Furniture? PlacedFurniture(AgentManager agents, long id)

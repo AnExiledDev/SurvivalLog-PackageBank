@@ -83,9 +83,9 @@ internal sealed class FakeGame : IBankGame
     }
 
     /// <summary>A placed piece of furniture with the click menu open on it.</summary>
-    public PlacedPiece OpenMenuOnPiece(int configId, int dye = 0, bool holdsItems = false, string? block = null, bool isStory = false)
+    public PlacedPiece OpenMenuOnPiece(int configId, int dye = 0, bool holdsItems = false, string? block = null, bool isStory = false, bool isInLayout = false)
     {
-        var piece = new PlacedPiece(_nextId++, configId, NameOf(configId), SizeOf(configId), dye, holdsItems, block, isStory);
+        var piece = new PlacedPiece(_nextId++, configId, NameOf(configId), SizeOf(configId), dye, holdsItems, block, isStory, isInLayout);
 
         Piece = piece;
         Menu = piece.Id;

@@ -37,8 +37,8 @@ public abstract record BankOutcome
     /// <summary>No free yard spot, and the bank cannot take the piece either.</summary>
     public sealed record NoRoom(string Name) : BankOutcome;
 
-    /// <summary>The piece is a package again, in the yard or, with the yard full, in the bank.</summary>
-    public sealed record PackedUp(string Name, bool IsIntoBank, bool IsStory) : BankOutcome;
+    /// <summary>The piece is a package again, in the yard or, with the yard full, in the bank. IsInLayout: in the yard, with the Layout screen open.</summary>
+    public sealed record PackedUp(string Name, bool IsIntoBank, bool IsStory, bool IsInLayout = false) : BankOutcome;
 
     public sealed record Failed : BankOutcome;
 }

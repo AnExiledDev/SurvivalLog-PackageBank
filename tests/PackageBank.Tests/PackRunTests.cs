@@ -111,6 +111,29 @@ public class PackRunTests
     }
 
     [Fact]
+    public void Packing_up_on_the_Layout_screen_tells_the_player_to_leave_Layout_to_install_the_package()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Bed, isInLayout: true);
+
+        var outcome = PackRun.PackMenu(game, Defaults);
+
+        Assert.Equal(new BankOutcome.PackedUp("Bed", IsIntoBank: false, IsStory: false, IsInLayout: true), outcome);
+        Assert.EndsWith("Leave Layout to install it.", OutcomeMessage.Describe(outcome, isChinese: false));
+    }
+
+    [Fact]
+    public void A_piece_packed_into_the_bank_on_the_Layout_screen_gets_no_Layout_hint()
+    {
+        var game = new FakeGame { FreeSpots = 0 };
+        game.OpenMenuOnPiece(Bed, isInLayout: true);
+
+        var message = OutcomeMessage.Describe(PackRun.PackMenu(game, Defaults), isChinese: false);
+
+        Assert.DoesNotContain("Layout", message);
+    }
+
+    [Fact]
     public void Pack_up_with_the_click_menu_already_shut_packs_nothing()
     {
         var game = new FakeGame();

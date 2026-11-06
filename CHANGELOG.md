@@ -6,6 +6,7 @@
 - A packed-up piece keeps its color, and the shop's Refund pays its current price for it, wherever it came from.
 - Pack up is greyed out while a storage piece still holds items, and while the game will not take the piece down (switched on, in use, a plant growing). It says why.
 - Story pieces can be packed up too. Their entry warns that the story uses them.
+- Packed up on the Layout screen, the message reminds you to leave Layout before installing: the game ignores clicks on yard packages there.
 - Made for Survival Log 1.1.20719.
 
 ## 0.6.1

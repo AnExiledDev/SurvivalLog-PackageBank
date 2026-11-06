@@ -30,7 +30,8 @@ public static class Texts
     public static readonly Phrase NoRoom = new("No free package spot in the yard, and no room in the bank for {0}.", "院子里没有空的包裹位置，仓库也放不下{0}。");
     public static readonly Phrase PackedUp = new("{0} packed up. Its package is in the yard.", "{0}已打包，包裹在院子里。");
     public static readonly Phrase PackedUpIntoBank = new("{0} packed up into the bank: the yard had no free package spot.", "{0}已打包存入仓库：院子里没有空的包裹位置。");
-    public static readonly Phrase StoryNote = new("The story uses it: install it again if the story stops moving.", "剧情会用到它：如果剧情没有进展，请重新安装。");
+    public static readonly Phrase LayoutNote = new("Leave Layout to install it.", "退出「布局」后才能安装它。");
+    public static readonly Phrase StoryNote =new("The story uses it: install it again if the story stops moving.", "剧情会用到它：如果剧情没有进展，请重新安装。");
     /// <summary>Who a toast is from, on its first line.</summary>
     public static readonly Phrase Source = new("Package Bank", "包裹仓库");
 
@@ -96,7 +97,7 @@ public static class Texts
 
     private static List<Phrase> Collect()
     {
-        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, HoldsItems, Blocked, NoRoom, PackedUp, PackedUpIntoBank, StoryNote, Failed, Large, Medium, Small, Story, Defense };
+        var all = new List<Phrase> { NoGame, NotHome, Gone, NotBankable, Busy, Full, Stored, NoSpot, TakenOut, HoldsItems, Blocked, NoRoom, PackedUp, PackedUpIntoBank, LayoutNote, StoryNote, Failed, Large, Medium, Small, Story, Defense };
 
         all.AddRange(Page.Select(word => word.Phrase));
 
@@ -130,8 +131,14 @@ public static class OutcomeMessage
     {
         var line = (packed.IsIntoBank ? Texts.PackedUpIntoBank : Texts.PackedUp).Say(isChinese, packed.Name);
 
-        return packed.IsStory ? line + (isChinese ? "" : " ") + Texts.StoryNote.Pick(isChinese) : line;
+        // The game ignores clicks on yard packages while its Layout screen is open, so the new package looks dead there.
+        if (packed.IsInLayout) line = Join(line, Texts.LayoutNote, isChinese);
+        if (packed.IsStory) line = Join(line, Texts.StoryNote, isChinese);
+
+        return line;
     }
+
+    private static string Join(string line, Phrase note, bool isChinese) => line + (isChinese ? "" : " ") + note.Pick(isChinese);
 }
 
 /// <summary>The panel's own words in the game's language, as the statement that hands them to page.js before every call.</summary>

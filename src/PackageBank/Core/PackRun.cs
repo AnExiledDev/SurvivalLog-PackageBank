@@ -50,7 +50,7 @@ public static class PackRun
         var isIntoBank = GoesToBank(bank);
         var isDone = isIntoBank ? game.PackUpIntoBank(piece, EntryFor(bank, piece)) : game.PackUp(piece);
 
-        return isDone ? new BankOutcome.PackedUp(piece.Name, isIntoBank, piece.IsStory) : new BankOutcome.Failed();
+        return isDone ? new BankOutcome.PackedUp(piece.Name, isIntoBank, piece.IsStory, piece.IsInLayout && !isIntoBank) : new BankOutcome.Failed();
     }
 
     /// <summary>Refundable at the shop's price: no paid price is kept, so the game works it out at the refund, and no shop restocks it.</summary>

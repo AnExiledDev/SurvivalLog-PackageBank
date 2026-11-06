@@ -23,6 +23,7 @@ Works in English and Chinese.
 - **A new loop empties the bank.** Anything still in the bank when a new loop starts is gone.
 - **To refund a banked package, take it out first**, then use the shop's own Refund button.
 - **Looted packages stay non-refundable** after a trip through the bank. A packed-up piece is the exception: it can always be refunded.
+- **On the Layout screen a packed-up package can't be clicked**, like every yard package there. Leave Layout, then install it.
 - **A custom name is lost when a piece is packed up.** A package has no name of its own, so the piece comes back with the game's name.
 - A package being moved or installed cannot be banked. Car and door boxes cannot be banked.
 - On an expedition the panel and the HUD button are hidden.
