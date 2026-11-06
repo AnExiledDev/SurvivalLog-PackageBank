@@ -1,5 +1,5 @@
 Name: Package Bank
-Summary: Store furniture packages from your yard in a bank and take them out when you need them. Bank them from the yard, from a HUD panel or right in the build shop, where banked packages are listed below the shop's list so you can shuffle packages while you shop. Size limits, a shelf for defenses and a free shelf for story items, all configurable.
+Summary: Store furniture packages from your yard in a bank and take them out when you need them, and pack placed furniture back into its package. Bank them from the yard, from a HUD panel or right in the build shop, where banked packages are listed below the shop's list. Size limits, a shelf for defenses and a free shelf for story items, all configurable.
 
 Description (BBCode):
 [center][img]https://sldb.core-directive.com/media/save/3-remove-with-care.png[/img][/center]
