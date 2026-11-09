@@ -208,13 +208,29 @@ public class FixtureRepairTests
     }
 
     [Fact]
-    public void Only_the_entrance_and_the_ladders_count_as_taken_by_an_older_Pack_up()
+    public void Fixtures_with_Move_but_no_Remove_or_no_build_spot_count_as_taken_by_an_older_Pack_up()
     {
         Assert.True(FixtureRepair.IsTakenByOldPackUp(EntranceRow));
         Assert.True(FixtureRepair.IsTakenByOldPackUp(LadderRow));
         Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { SlotType = 1 }));
         Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { HasMove = false }));
         Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { MapType = 2 }));
+    }
+
+    [Fact]
+    public void A_fixture_the_story_still_hides_is_not_set_down_again_so_no_hidden_piece_is_left_behind()
+    {
+        var hidden = LadderRow with { IsShown = false };
+
+        Assert.Empty(FixtureRepair.Find(new[] { hidden }, chapterId: 2, Student, Copies(packages: new[] { (901L, Ladder) })));
+    }
+
+    [Fact]
+    public void A_fixture_that_came_with_items_is_not_set_down_again_so_its_items_are_not_handed_out_twice()
+    {
+        var nightstand = LadderRow with { HasStartingItems = true };
+
+        Assert.Empty(FixtureRepair.Find(new[] { nightstand }, chapterId: 2, Student, Copies(banked: new[] { (5, Ladder) })));
     }
 
     [Fact]

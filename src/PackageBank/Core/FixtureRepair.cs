@@ -5,7 +5,9 @@ namespace PackageBank.Core;
 /// <summary>
 /// One Config_GuidanceFurniture row: a piece the game sets down itself when a save loads. MapChapter and MapType are
 /// the Config_MapPoint row of MapPointId (null when there is none); HasMove and HasRemove are the furniture's MoveFunc
-/// and RemoveFunc being set, SlotType its Config_Furniture.SlotType.
+/// and RemoveFunc being set, SlotType its Config_Furniture.SlotType. IsShown is the row's IsShow (the game sets a hidden
+/// row down unseen, until the story shows it); HasStartingItems is the row filling the piece's container when it is
+/// set down (ItemIdList, the per-player lists or PackageID).
 /// </summary>
 public sealed record FixtureRow(
     int FurnitureId,
@@ -18,7 +20,9 @@ public sealed record FixtureRow(
     bool IsLootSeed,
     bool HasMove,
     bool HasRemove,
-    int SlotType);
+    int SlotType,
+    bool IsShown = true,
+    bool HasStartingItems = false);
 
 /// <summary>A copy of a fixture that is not where the game put it: a placed piece, a yard package, or a bank entry.</summary>
 public abstract record FixtureCopy
@@ -51,9 +55,9 @@ public sealed record HomeCopies(
 public sealed record LostFixture(int FurnitureId, FixtureCopy? Copy);
 
 /// <summary>
-/// Pack up before 0.7.1 also took the basement entrance, which the game never lets the player take down, and the
-/// ladders between floors, which stand on no build spot; neither can go back where it was. This finds such fixtures in a
-/// loaded save, so the game can set them down again.
+/// Pack up before 0.7.1 also took the basement entrance, which the game never lets the player take down, and fixtures
+/// that stand on no build spot (the ladders between floors, some lamps, workbenches and the like); none of them can go
+/// back where it was. This finds such fixtures in a loaded save, so the game can set them down again.
 /// </summary>
 public static class FixtureRepair
 {
@@ -75,7 +79,7 @@ public static class FixtureRepair
 
         foreach (var row in rows)
         {
-            if (!IsTakenByOldPackUp(row) || !IsLoaded(row, chapterId, playerSelectId)) continue;
+            if (!IsTakenByOldPackUp(row) || !CanSetDownAgain(row) || !IsLoaded(row, chapterId, playerSelectId)) continue;
             if (home.Standing.Contains(row.FurnitureId) || !seen.Add(row.FurnitureId)) continue;
 
             var copy = CopyOf(home, row.FurnitureId);
@@ -96,10 +100,16 @@ public static class FixtureRepair
         && row.MapType == PackRules.HomeMapType
         && !PackRules.IsPackable(new PieceFacts(row.HasMove, row.HasRemove, IsRemoveHiddenHere: false, row.MapType, row.SlotType));
 
+    /// <summary>
+    /// The game's load call sets the fixture down as the player first had it: a hidden row comes back unseen, and a row
+    /// with starting items comes back full though the player emptied it to pack it. Either is left as the player has it.
+    /// </summary>
+    public static bool CanSetDownAgain(FixtureRow row) => row.IsShown && !row.HasStartingItems;
+
     /// <summary>What the Cheat Menu button reports: the fixtures set down again, and those that would not go.</summary>
     public static string Describe(IReadOnlyList<string> setDown, IReadOnlyList<string> kept)
     {
-        if (setDown.Count == 0 && kept.Count == 0) return "nothing needed fixing: the basement entrance and the ladders stand where the game puts them";
+        if (setDown.Count == 0 && kept.Count == 0) return "nothing needed fixing: the basement entrance, the ladders and the other fixtures stand where the game puts them";
 
         var parts = new List<string>();
 

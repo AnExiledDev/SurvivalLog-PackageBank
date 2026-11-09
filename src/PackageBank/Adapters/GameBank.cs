@@ -458,7 +458,18 @@ internal sealed class GameBank : IBankGame
         if (build == null || counters == null) return "load a save first";
         if (world.GameModeKey != GameMode.Default || !HomeFixtures.IsAtHome(config, role)) return "go home first: the repair works in your home";
 
-        var outcome = _fixtures.Repair(config, agents, build, Contents(counters).Entries, slot => ClearEntry(counters, slot), id => NameOf(config, id));
+        HomeFixtures.Outcome? outcome;
+
+        try
+        {
+            outcome = _fixtures.Repair(config, agents, build, Contents(counters).Entries, slot => ClearEntry(counters, slot), id => NameOf(config, id));
+        }
+        catch (Exception ex)
+        {
+            _log($"the repair button failed: {ex}");
+
+            return "the repair failed, see the Package Bank log";
+        }
 
         if (outcome == null) return "the save is still loading, try again in a moment";
         if (outcome.SetDown.Count > 0) _shop.Recount(build);

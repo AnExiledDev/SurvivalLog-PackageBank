@@ -8,7 +8,8 @@ using PackageBank.Core;
 namespace PackageBank.Adapters;
 
 /// <summary>
-/// Sets the home's fixtures down again when an older Pack up took them (the basement entrance, the ladders): once per
+/// Sets the home's fixtures down again when an older Pack up took them (the basement entrance, the ladders, other
+/// fixtures with no build spot): once per
 /// loaded save at home, and whenever Cheat Menu's repair button asks. The game's own load call puts each one back where it belongs, with every other fixture held back, and the
 /// copy the player was left with (a piece on a build spot, a yard package or a bank entry) goes only once the fixture
 /// stands again. The game never sets down a fixture it recorded as taken down, so that record is dropped first, and
@@ -108,11 +109,21 @@ internal sealed class HomeFixtures
                 row.IsLootSeed,
                 furniture?.MoveFunc is { Count: > 0 },
                 furniture?.RemoveFunc is { Count: > 0 },
-                furniture?.SlotType ?? PackRules.NoSpotSlotType));
+                furniture?.SlotType ?? PackRules.NoSpotSlotType,
+                row.IsShow,
+                HasStartingItems(row)));
         }
 
         return rows;
     }
+
+    private static bool HasStartingItems(Config_GuidanceFurniture row) =>
+        row.PackageID > 0
+        || row.ItemIdList is { Count: > 0 }
+        || row.ItemIdList_P1 is { Count: > 0 }
+        || row.ItemIdList_P2 is { Count: > 0 }
+        || row.ItemIdList_P3 is { Count: > 0 }
+        || row.ItemIdList_P4 is { Count: > 0 };
 
     private static HomeCopies Copies(ConfigManager config, AgentManager agents, BuildComponent build, IReadOnlyList<BankEntry> banked, List<FixtureRow> rows)
     {
@@ -180,6 +191,7 @@ internal sealed class HomeFixtures
         var id = fixture.FurnitureId;
         var record = build.GetDemolishedGuidanceIds();
         var wasRecorded = record != null && record.Remove(id);
+        var before = PiecesOf(agents, id);
         var others = new Il2CppSystem.Collections.Generic.HashSet<int>();
 
         foreach (var pair in table)
@@ -198,7 +210,10 @@ internal sealed class HomeFixtures
 
         if (Standing(agents, id) == null)
         {
+            ClearNewPieces(agents, id, before);
+
             if (wasRecorded) record!.Add(id);
+            else record?.Remove(id);
 
             _log($"furniture {id} is not where the game puts it and could not be set down again, so its copy {fixture.Copy} is kept");
 
@@ -209,6 +224,48 @@ internal sealed class HomeFixtures
         TakeAway(agents, build, id, fixture.Copy, clearEntry);
 
         return true;
+    }
+
+    private static HashSet<long> PiecesOf(AgentManager agents, int configId)
+    {
+        var ids = new HashSet<long>();
+        var furnitures = agents.GetAllFurnitures();
+
+        for (var i = 0; furnitures != null && i < furnitures.Count; i++)
+        {
+            var furniture = furnitures[i];
+
+            if (furniture != null && furniture.AgentConfigId == configId) ids.Add(furniture.InstanceId);
+        }
+
+        return ids;
+    }
+
+    /// <summary>A failed set-down must not leave a piece behind (one the game made but did not show), or every load adds one.</summary>
+    private void ClearNewPieces(AgentManager agents, int configId, HashSet<long> before)
+    {
+        var furnitures = agents.GetAllFurnitures();
+        var made = new List<Furniture>();
+
+        for (var i = 0; furnitures != null && i < furnitures.Count; i++)
+        {
+            var furniture = furnitures[i];
+
+            if (furniture != null && !furniture.IsDead && furniture.AgentConfigId == configId && !before.Contains(furniture.InstanceId)) made.Add(furniture);
+        }
+
+        foreach (var piece in made)
+        {
+            try
+            {
+                AE_DisableFurniture.DemolishFurniture(piece);
+                _log($"took away piece {piece.InstanceId} of furniture {configId}, which the game made but did not set down where it belongs");
+            }
+            catch (Exception ex)
+            {
+                _log($"could not take away piece {piece.InstanceId} of furniture {configId}: {ex}");
+            }
+        }
     }
 
     private static Furniture? Standing(AgentManager agents, int configId)
@@ -233,8 +290,13 @@ internal sealed class HomeFixtures
             switch (copy)
             {
                 case FixtureCopy.Placed placed:
-                    if (agents.GetAgent(placed.Id)?.TryCast<Furniture>() is { } piece) AE_DisableFurniture.DemolishFurniture(piece);
+                    if (agents.GetAgent(placed.Id)?.TryCast<Furniture>() is not { } piece)
+                    {
+                        _log($"the copy of furniture {configId} on a build spot (piece {placed.Id}) was not found, so nothing was taken away");
+                        break;
+                    }
 
+                    AE_DisableFurniture.DemolishFurniture(piece);
                     _log($"took away the copy of furniture {configId} on a build spot (piece {placed.Id})");
                     break;
                 case FixtureCopy.Package package:
