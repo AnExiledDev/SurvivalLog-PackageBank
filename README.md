@@ -8,7 +8,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **The panel** lists the packages in your yard ("In the yard") and the packages in the bank ("In the bank"), each grouped by shelf. `Bank` moves a package from the yard into the bank. `Take out` puts a banked package back on a free package spot in the yard; the number of free spots shows beside the bank's heading.
 - **Shelf cards:** a card for each shelf along the top shows how many packages are banked on it against its limit, and turns red when the shelf is full. Click a card to show only that shelf in both lists; click it again, or `Show all` at the bottom, to show everything.
 - **Bank from the yard:** click a package in your yard and its menu (Install, Return) gets a `Bank` entry that moves it straight into the bank.
-- **Pack up placed furniture:** click a piece of furniture you can move and its menu gets a `Pack up` entry. The piece becomes its package again, in its color, on a free package spot in the yard, or in the bank when the yard has no free spot and its shelf has room. The shop's Refund pays the current price for it, wherever it came from. A storage piece must be empty first, and the entry is greyed out with the game's reason while the piece cannot come down (switched on, in use, a plant growing). Story pieces can be packed up too; their entry warns that the story uses them.
+- **Pack up placed furniture:** click a piece of furniture in your home that the Layout screen lets you both move and remove, and its menu gets a `Pack up` entry. The piece becomes its package again, in its color, on a free package spot in the yard, or in the bank when the yard has no free spot and its shelf has room. The shop's Refund pays the current price for it, wherever it came from. A storage piece must be empty first, and the entry is greyed out with the game's reason while the piece cannot come down (switched on, in use, a plant growing). Story pieces can be packed up too; their entry warns that the story uses them.
 - **In the build shop:** every bought package in the shop's package list gets a `Bank` button next to its Refund button, and the banked packages are listed below the shop's list with their icons, each with `Take out`. You can move packages in and out of the bank while you shop.
 - **Size limits:** the bank holds 4 large, 6 medium and 8 small packages, and 4 defenses (sandbags, spike barriers and the like), by default. Limits can be changed or turned off in the config. Each shelf card shows how many are banked and its limit.
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
@@ -24,6 +24,7 @@ Works in English and Chinese.
 - **To refund a banked package, take it out first**, then use the shop's own Refund button.
 - **Looted packages stay non-refundable** after a trip through the bank. A packed-up piece is the exception: it can always be refunded.
 - **On the Layout screen a packed-up package can't be clicked**, like every yard package there. Leave Layout, then install it.
+- **Pack up takes only what the Layout screen can remove.** The basement entrance and the shops you visit before the disaster have no Pack up. A basement entrance packed up with 0.7.0 goes back where it was the next time you load the save at home.
 - **A custom name is lost when a piece is packed up.** A package has no name of its own, so the piece comes back with the game's name.
 - A package being moved or installed cannot be banked. Car and door boxes cannot be banked.
 - On an expedition the panel and the HUD button are hidden.
@@ -53,7 +54,7 @@ See [CONFIG.md](CONFIG.md). Each world can keep its own size limits: pick them f
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.7.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.7.1 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

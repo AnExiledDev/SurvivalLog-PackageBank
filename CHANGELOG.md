@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+- Fix: Pack up is no longer offered on the basement entrance, or on any piece the Layout screen has no Remove for. A packed-up entrance could not go back where it was.
+- Fix: Pack up is no longer offered on furniture in the shops you visit before the disaster. Pressing it there gave an error.
+- A basement entrance packed up with 0.7.0 goes back where it was when you load the save at home. Its package, its bank entry, or the copy installed on a large spot goes away.
+- Made for Survival Log 1.1.20719.
+
 ## 0.7.0
 
 - New: **Pack up** turns placed furniture back into its package. Click a piece you can move and its menu gets a `Pack up` entry. The package goes on a free package spot in the yard, or into the bank when the yard has none.

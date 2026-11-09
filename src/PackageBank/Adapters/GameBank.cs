@@ -23,6 +23,7 @@ internal sealed class GameBank : IBankGame
 
     private readonly Action<string> _log;
     private readonly GameShop _shop;
+    private readonly HomeFixtures _fixtures;
     private readonly HashSet<string> _reportedFailures = new();
     private readonly KeyedMemo<(IntPtr Config, bool IsChinese, bool HasIcons), FurnitureInfo> _furniture;
     private readonly Task<(IconIndex Icons, string Note)> _iconScan;
@@ -48,6 +49,7 @@ internal sealed class GameBank : IBankGame
     {
         _shop = shop;
         _log = log;
+        _fixtures = new HomeFixtures(log);
         _furniture = new KeyedMemo<(IntPtr, bool, bool), FurnitureInfo>(Describe);
         _iconScan = WebIcons.StartScan();
     }
@@ -408,17 +410,35 @@ internal sealed class GameBank : IBankGame
 
         if (game == null) return NotReady(BankPlace.NoGame, "no game loaded", isChinese);
 
-        var (world, _, _, role) = game.Value;
+        var (world, config, agents, role) = game.Value;
         var mode = world.GameModeKey;
 
         if (mode == GameMode.Explore) return NotReady(BankPlace.Away, "on an expedition", isChinese);
         if (mode != GameMode.Default) return NotReady(BankPlace.NoGame, "game mode", isChinese, (int)mode);
-        if (AgentTools.GetAgentComponent<BuildComponent>(role) == null) return NotReady(BankPlace.NoGame, "the character has no build component", isChinese);
-        if (Counters() == null) return NotReady(BankPlace.NoGame, "the save's counters are missing", isChinese);
+
+        var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+        var counters = Counters();
+
+        if (build == null) return NotReady(BankPlace.NoGame, "the character has no build component", isChinese);
+        if (counters == null) return NotReady(BankPlace.NoGame, "the save's counters are missing", isChinese);
 
         _loggedNotReady = null;
+        RepairFixtures(config, agents, role, build, counters);
 
         return new BankState(BankPlace.Home, _shop.IsOpen(), MenuOpenOn(), isChinese);
+    }
+
+    /// <summary>Once per loaded save: a fixture an older Pack up took (the basement entrance) goes back where the game puts it.</summary>
+    private void RepairFixtures(ConfigManager config, AgentManager agents, LeadingRole role, BuildComponent build, Il2CppSystem.Collections.Generic.Dictionary<string, int> counters)
+    {
+        try
+        {
+            if (_fixtures.RepairOnce(config, agents, role, build, Contents(counters).Entries, slot => ClearEntry(counters, slot))) _shop.Recount(build);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("set the home's fixtures down again", ex);
+        }
     }
 
     /// <summary>
@@ -525,8 +545,9 @@ internal sealed class GameBank : IBankGame
     }
 
     /// <summary>
-    /// The placed furniture the click menu is open on, when it is one the game lets the player move (so a spot can take
-    /// its package again); null for a yard package, a fixture of the home, or a shut menu. A broken read costs only the
+    /// The placed furniture the click menu is open on, when it is one the game lets the player both move and take down
+    /// at home (so a spot can take its package again); null for a yard package, a fixture of the home such as the
+    /// basement entrance, a shop's counter, or a shut menu. A broken read costs only the
     /// Pack up entry.
     /// </summary>
     private PlacedPiece? PieceOf(ConfigManager config, AgentManager agents, (IntPtr, bool, bool) scope, long? menuOn)
@@ -554,13 +575,25 @@ internal sealed class GameBank : IBankGame
         var configId = furniture.AgentConfigId;
         var row = Row(config, configId);
 
-        if (row?.MoveFunc == null || row.MoveFunc.Count == 0) return null;
+        if (row == null || !PackRules.IsPackable(FactsOf(config, furniture, row))) return null;
 
         var info = Info(config, scope, configId);
         var isStory = StoryFurniture(config).Contains(configId) || furniture._IsGuidanceFurniture_k__BackingField || furniture.IsSoleMainEventAnchor(configId);
 
         return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory, IsInLayout());
     }
+
+    /// <summary>
+    /// What the game's Layout screen goes by: it shows Move when MoveFunc is set, and Remove when RemoveFunc is set and
+    /// the piece is not one that comes down only in an endless save. MapConfigId is the map the piece stands on.
+    /// </summary>
+    private static PieceFacts FactsOf(ConfigManager config, Furniture furniture, Config_Furniture row) => new(
+        HasMove: row.MoveFunc is { Count: > 0 },
+        HasRemove: row.RemoveFunc is { Count: > 0 },
+        IsRemoveHiddenHere: furniture.IsDemolishHiddenOutsideEndless(),
+        MapType: MapTypeOf(config, furniture.MapConfigId));
+
+    private static int? MapTypeOf(ConfigManager config, int mapId) => mapId > 0 ? config.Get_Config_MapPoint(mapId)?.Type : null;
 
     /// <summary>The game's Layout screen (plan mode) is open: there a click on a yard package does nothing unless an install is under way.</summary>
     private static bool IsInLayout() => GameSingleton.Existing<BattleLogicWorld>()?._IsPlanMode_k__BackingField ?? false;
