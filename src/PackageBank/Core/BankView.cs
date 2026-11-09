@@ -66,7 +66,7 @@ public static class BankView
 
     /// <summary>
     /// Null unless the click menu is open on a placed piece Pack up can work on. Why is the reason it would refuse,
-    /// "blocked" carrying the game's own words in Reason; IntoBank says the package would go into the bank.
+    /// "blocked" carrying the game's words in Reason; IntoBank says the package would go into the bank.
     /// </summary>
     private static string Pack(Bank bank, BankLimits limits)
     {

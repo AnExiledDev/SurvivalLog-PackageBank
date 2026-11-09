@@ -17,7 +17,7 @@ public readonly record struct ShopRow(int Index, int ConfigId, int Paid);
 /// <summary>
 /// A placed piece of furniture the game's click menu is open on, one the game lets the player move. Size is the bank
 /// shelf its package goes on, null when the bank cannot take it. HoldsItems is a storage piece with something still in
-/// it. Block is the game's own reason it cannot be taken down right now (in use, switched on, a plant growing), null
+/// it. Block is the game's reason it cannot be taken down right now (in use, switched on, a plant growing), null
 /// when it can. IsStory is a piece the story uses. IsInLayout: the game's Layout screen is open, where a yard package cannot be clicked.
 /// </summary>
 public sealed record PlacedPiece(long Id, int ConfigId, string Name, PackageSize? Size, int Dye, bool HoldsItems, string? Block, bool IsStory, bool IsInLayout = false);

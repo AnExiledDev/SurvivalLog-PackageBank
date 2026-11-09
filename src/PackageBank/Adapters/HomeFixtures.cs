@@ -10,7 +10,7 @@ namespace PackageBank.Adapters;
 /// <summary>
 /// Sets the home's fixtures down again when an older Pack up took them (the basement entrance, the ladders, other
 /// fixtures with no build spot): once per
-/// loaded save at home, and whenever Cheat Menu's repair button asks. The game's own load call puts each one back where it belongs, with every other fixture held back, and the
+/// loaded save at home, and whenever Cheat Menu's repair button asks. The game's load call puts each one back where it belongs, with every other fixture held back, and the
 /// copy the player was left with (a piece on a build spot, a yard package or a bank entry) goes only once the fixture
 /// stands again. The game never sets down a fixture it recorded as taken down, so that record is dropped first, and
 /// put back if the fixture does not appear.

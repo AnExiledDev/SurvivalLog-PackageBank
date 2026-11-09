@@ -220,7 +220,7 @@ internal sealed class GameBank : IBankGame
     /// Makes the package first, on the free yard spot nearest the player as Take out does, then takes the piece down the
     /// way the pawn shop does (power, story and tray clean-up, no materials back). A piece that will not come down takes
     /// its new package with it, so a failure can neither lose the piece nor copy it. The package is then marked as bought
-    /// at an unknown price, which the game's own Refund pays at the shop's price.
+    /// at an unknown price, which the game's Refund pays at the shop's price.
     /// </summary>
     public bool PackUp(PlacedPiece piece)
     {
@@ -653,7 +653,7 @@ internal sealed class GameBank : IBankGame
     }
 
     /// <summary>
-    /// The game's own reason it will not take the piece down, the one its Layout screen greys the remove button with: a
+    /// The game's reason it will not take the piece down, the one its Layout screen greys the remove button with: a
     /// plant on it (unless the pot is idle or the plant poor), or anything AE_DisableFurniture refuses (in use, switched
     /// on, busy, a robot out, something on top).
     /// </summary>

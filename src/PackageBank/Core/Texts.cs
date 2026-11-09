@@ -24,7 +24,7 @@ public static class Texts
     public static readonly Phrase TakenOut = new("{0} taken out of the bank.", "{0}已从仓库取出。");
     public static readonly Phrase HoldsItems = new("Empty {0} first: it still holds items.", "请先清空{0}：里面还有物品。");
 
-    /// <summary>{1} is the game's own reason.</summary>
+    /// <summary>{1} is the game's reason.</summary>
     public static readonly Phrase Blocked = new("{0} can't be packed up right now: {1}", "{0}现在无法打包：{1}");
 
     public static readonly Phrase NoRoom = new("No free package spot in the yard, and no room in the bank for {0}.", "院子里没有空的包裹位置，仓库也放不下{0}。");

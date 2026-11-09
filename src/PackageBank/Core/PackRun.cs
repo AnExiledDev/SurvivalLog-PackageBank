@@ -9,7 +9,7 @@ namespace PackageBank.Core;
 /// </summary>
 public static class PackRun
 {
-    /// <summary>The game's own "price not recorded" (BuildComponent.PAID_UNKNOWN): its refund then charges the current shop price.</summary>
+    /// <summary>The game's "price not recorded" (BuildComponent.PAID_UNKNOWN): its refund then charges the current shop price.</summary>
     public const int PaidUnknown = -1;
 
     /// <summary>

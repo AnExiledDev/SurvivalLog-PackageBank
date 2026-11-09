@@ -7,7 +7,7 @@ namespace PackageBank.Adapters;
 /// <summary>
 /// Tells the session the moment the game opens its click menu, in the same call that opens it. The game sends the
 /// menu's buttons to the web view later in the frame, so the Bank entry's data reaches the page first and the entry
-/// is drawn with the game's own. Static because a Harmony patch has nowhere else to look.
+/// is drawn with the game's. Static because a Harmony patch has nowhere else to look.
 /// </summary>
 internal static class MenuOpening
 {

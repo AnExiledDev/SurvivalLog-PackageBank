@@ -100,7 +100,7 @@ internal sealed class BankSession
     }
 
     /// <summary>
-    /// Called by the game's own menu-open call, before the game sends the menu to the web view, so the page has the Bank
+    /// Called by the game's menu-open call, before the game sends the menu to the web view, so the page has the Bank
     /// entry's data by the time the menu's buttons are drawn.
     /// </summary>
     public void MenuOpened(long id)

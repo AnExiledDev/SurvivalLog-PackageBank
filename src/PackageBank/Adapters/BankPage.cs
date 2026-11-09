@@ -7,7 +7,7 @@ using PackageBank.Core;
 namespace PackageBank.Adapters;
 
 /// <summary>
-/// The mod's half that lives in the game's web UI: page.js, run in the root document the game's own pages sit in. It
+/// The mod's half that lives in the game's web UI: page.js, run in the root document the game's pages sit in. It
 /// draws the bank panel, puts the Package Bank button in the HUD's tool column, and adds the bank to the build shop's
 /// package list. The web view can reload at any time and lose the script, so Exiled's Toolkit checks for it every
 /// couple of seconds and the session puts it back when the page says it is missing.

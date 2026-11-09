@@ -1,6 +1,6 @@
 // Package Bank's web half. Runs in Root.html, the document every game page iframe sits in. Draws the bank panel over
 // all of them, puts a button in the HUD's tool column (bottom left, above the phone and bag buttons) built like the
-// game's own buttons there, and while the build shop is open adds a Bank button beside each Refund button of its
+// game's buttons there, and while the build shop is open adds a Bank button beside each Refund button of its
 // package list and the banked packages under that list, a Bank entry in the click menu of a yard package, and a Pack up
 // entry in the click menu of a placed piece of furniture. Talks to the plugin through
 // vuplex.postMessage("slmod|packagebank|<verb>") and is driven by window.__slpkgbank. The HUD button, the bridge and
@@ -714,7 +714,7 @@
     return { cls: MENU_CLASS, label: say('bank'), tip: why ? say(why) : '', isLocked: !!why, action: 'menubank' };
   }
 
-  // A blocked piece shows the game's own reason. A story piece warns either way, as packing it is allowed.
+  // A blocked piece shows the game's reason. A story piece warns either way, as packing it is allowed.
   function packItem(pack) {
     var tip = pack.why === 'blocked' ? pack.reason || '' : pack.why ? say(pack.why) : pack.intoBank ? say('packToBank') : '';
 
