@@ -5,7 +5,7 @@ namespace PackageBank.Core;
 /// <summary>
 /// One Config_GuidanceFurniture row: a piece the game sets down itself when a save loads. MapChapter and MapType are
 /// the Config_MapPoint row of MapPointId (null when there is none); HasMove and HasRemove are the furniture's MoveFunc
-/// and RemoveFunc being set.
+/// and RemoveFunc being set, SlotType its Config_Furniture.SlotType.
 /// </summary>
 public sealed record FixtureRow(
     int FurnitureId,
@@ -17,7 +17,8 @@ public sealed record FixtureRow(
     int PosType,
     bool IsLootSeed,
     bool HasMove,
-    bool HasRemove);
+    bool HasRemove,
+    int SlotType);
 
 /// <summary>A copy of a fixture that is not where the game put it: a placed piece, a yard package, or a bank entry.</summary>
 public abstract record FixtureCopy
@@ -50,8 +51,9 @@ public sealed record HomeCopies(
 public sealed record LostFixture(int FurnitureId, FixtureCopy? Copy);
 
 /// <summary>
-/// Pack up before 0.7.1 also took the basement entrance, which the game never lets the player take down and which
-/// cannot go back where it was. This finds such fixtures in a loaded save, so the game can set them down again.
+/// Pack up before 0.7.1 also took the basement entrance, which the game never lets the player take down, and the
+/// ladders between floors, which stand on no build spot; neither can go back where it was. This finds such fixtures in a
+/// loaded save, so the game can set them down again.
 /// </summary>
 public static class FixtureRepair
 {
@@ -59,10 +61,12 @@ public static class FixtureRepair
     public const int MapPointPosType = 1;
 
     /// <summary>
-    /// A fixture of the home, on a fixed point, that the game has Move but no Remove for (only Pack up could take it), which the game sets down for this save
-    /// (as AgentManager.LoadFurnitureFromGuidance picks rows), and that no longer stands. Each gets one copy to take away:
-    /// a placed one first (it holds a build spot), then a yard package, then a bank entry. A fixture with no copy left is
-    /// set down again only when the game recorded taking it down; otherwise it was never set down in this save.
+    /// A fixture of the home, on a fixed point, that an older Pack up took but this one does not (see IsTakenByOldPackUp),
+    /// which the game sets down for this save (as AgentManager.LoadFurnitureFromGuidance picks rows), and that no longer
+    /// stands. Each gets one copy to take away: a placed one first (it holds a build spot), then a yard package, then a
+    /// bank entry. A fixture with no copy left is set down again only when it has no Remove and the game recorded taking
+    /// it down: only Pack up can take such a piece down, while a ladder the record holds may be one the player removed on
+    /// the Layout screen.
     /// </summary>
     public static IReadOnlyList<LostFixture> Find(IEnumerable<FixtureRow> rows, int chapterId, int playerSelectId, HomeCopies home)
     {
@@ -71,15 +75,38 @@ public static class FixtureRepair
 
         foreach (var row in rows)
         {
-            if (!IsHomeFixture(row) || !IsLoaded(row, chapterId, playerSelectId)) continue;
+            if (!IsTakenByOldPackUp(row) || !IsLoaded(row, chapterId, playerSelectId)) continue;
             if (home.Standing.Contains(row.FurnitureId) || !seen.Add(row.FurnitureId)) continue;
 
             var copy = CopyOf(home, row.FurnitureId);
 
-            if (copy != null || home.Demolished.Contains(row.FurnitureId)) lost.Add(new LostFixture(row.FurnitureId, copy));
+            if (copy != null || (!row.HasRemove && home.Demolished.Contains(row.FurnitureId))) lost.Add(new LostFixture(row.FurnitureId, copy));
         }
 
         return lost;
+    }
+
+    /// <summary>
+    /// A home fixture on a fixed point that Pack up offered before 0.7.1 (it has Move) and no longer offers: no Remove
+    /// (the basement entrance) or no kind of build spot (a ladder).
+    /// </summary>
+    public static bool IsTakenByOldPackUp(FixtureRow row) =>
+        row.HasMove
+        && row.PosType == MapPointPosType
+        && row.MapType == PackRules.HomeMapType
+        && !PackRules.IsPackable(new PieceFacts(row.HasMove, row.HasRemove, IsRemoveHiddenHere: false, row.MapType, row.SlotType));
+
+    /// <summary>What the Cheat Menu button reports: the fixtures set down again, and those that would not go.</summary>
+    public static string Describe(IReadOnlyList<string> setDown, IReadOnlyList<string> kept)
+    {
+        if (setDown.Count == 0 && kept.Count == 0) return "nothing needed fixing: the basement entrance and the ladders stand where the game puts them";
+
+        var parts = new List<string>();
+
+        if (setDown.Count > 0) parts.Add($"set down again where the game puts them: {string.Join(", ", setDown)}");
+        if (kept.Count > 0) parts.Add($"could not set down, so the copy you have stays (see the log): {string.Join(", ", kept)}");
+
+        return string.Join(". ", parts);
     }
 
     /// <summary>The same test as AgentManager.ShouldLoadFurniture: which ChapterType rows load in which chapter.</summary>
@@ -96,9 +123,6 @@ public static class FixtureRepair
             _ => chapterType == -1,
         };
     }
-
-    private static bool IsHomeFixture(FixtureRow row) =>
-        row.HasMove && !row.HasRemove && row.PosType == MapPointPosType && row.MapType == PackRules.HomeMapType;
 
     private static bool IsLoaded(FixtureRow row, int chapterId, int playerSelectId)
     {

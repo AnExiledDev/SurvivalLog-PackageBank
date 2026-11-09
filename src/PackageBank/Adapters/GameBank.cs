@@ -433,12 +433,37 @@ internal sealed class GameBank : IBankGame
     {
         try
         {
-            if (_fixtures.RepairOnce(config, agents, role, build, Contents(counters).Entries, slot => ClearEntry(counters, slot))) _shop.Recount(build);
+            if (_fixtures.RepairOnce(config, agents, role, build, Contents(counters).Entries, slot => ClearEntry(counters, slot), id => NameOf(config, id))) _shop.Recount(build);
         }
         catch (Exception ex)
         {
             ReportOnce("set the home's fixtures down again", ex);
         }
+    }
+
+    /// <summary>
+    /// Cheat Menu's repair button: the same check as on load, run now, at home only. Says what it set down again, or
+    /// that nothing needed fixing.
+    /// </summary>
+    public string RepairFixturesNow()
+    {
+        var game = LoadedGame();
+
+        if (game == null) return "load a save first";
+
+        var (world, config, agents, role) = game.Value;
+        var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+        var counters = Counters();
+
+        if (build == null || counters == null) return "load a save first";
+        if (world.GameModeKey != GameMode.Default || !HomeFixtures.IsAtHome(config, role)) return "go home first: the repair works in your home";
+
+        var outcome = _fixtures.Repair(config, agents, build, Contents(counters).Entries, slot => ClearEntry(counters, slot), id => NameOf(config, id));
+
+        if (outcome == null) return "the save is still loading, try again in a moment";
+        if (outcome.SetDown.Count > 0) _shop.Recount(build);
+
+        return FixtureRepair.Describe(outcome.SetDown, outcome.Kept);
     }
 
     /// <summary>
@@ -591,7 +616,8 @@ internal sealed class GameBank : IBankGame
         HasMove: row.MoveFunc is { Count: > 0 },
         HasRemove: row.RemoveFunc is { Count: > 0 },
         IsRemoveHiddenHere: furniture.IsDemolishHiddenOutsideEndless(),
-        MapType: MapTypeOf(config, furniture.MapConfigId));
+        MapType: MapTypeOf(config, furniture.MapConfigId),
+        SlotType: row.SlotType);
 
     private static int? MapTypeOf(ConfigManager config, int mapId) => mapId > 0 ? config.Get_Config_MapPoint(mapId)?.Type : null;
 

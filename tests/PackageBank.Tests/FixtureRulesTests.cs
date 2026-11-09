@@ -12,41 +12,48 @@ public class PackRulesTests
 {
     private const int Home = PackRules.HomeMapType;
     private const int Shop = 2;
+    private const int Large = 3;
 
     [Fact]
     public void A_piece_the_game_lets_the_player_move_and_take_down_at_home_packs()
     {
-        Assert.True(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: Home)));
+        Assert.True(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: Home, SlotType: Large)));
     }
 
     [Fact]
     public void The_basement_entrance_has_Move_but_no_Remove_so_it_does_not_pack()
     {
-        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: false, IsRemoveHiddenHere: false, MapType: Home)));
+        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: false, IsRemoveHiddenHere: false, MapType: Home, SlotType: Large)));
     }
 
     [Fact]
     public void A_shop_counter_visited_before_the_disaster_does_not_pack()
     {
-        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: Shop)));
+        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: Shop, SlotType: Large)));
     }
 
     [Fact]
     public void A_piece_whose_Remove_the_game_hides_in_this_save_does_not_pack()
     {
-        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: true, MapType: Home)));
+        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: true, MapType: Home, SlotType: Large)));
     }
 
     [Fact]
     public void A_piece_with_no_Move_does_not_pack()
     {
-        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: false, HasRemove: true, IsRemoveHiddenHere: false, MapType: Home)));
+        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: false, HasRemove: true, IsRemoveHiddenHere: false, MapType: Home, SlotType: Large)));
+    }
+
+    [Fact]
+    public void A_ladder_stands_on_no_build_spot_so_it_does_not_pack_though_it_has_Move_and_Remove()
+    {
+        Assert.False(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: Home, SlotType: PackRules.NoSpotSlotType)));
     }
 
     [Fact]
     public void A_piece_on_a_map_the_game_has_no_row_for_still_packs()
     {
-        Assert.True(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: null)));
+        Assert.True(PackRules.IsPackable(new PieceFacts(HasMove: true, HasRemove: true, IsRemoveHiddenHere: false, MapType: null, SlotType: Large)));
     }
 }
 
@@ -57,7 +64,12 @@ public class FixtureRepairTests
     private const int Student = 2;
 
     /// <summary>The Female College Student's basement entrance: ChapterType 1, map 1 (home), a fixed point, no Remove.</summary>
-    private static readonly FixtureRow EntranceRow = new(Entrance, ChapterType: 1, PlayerSelectId: Student, MapPointId: 1, MapChapter: 0, MapType: 1, PosType: 1, IsLootSeed: false, HasMove: true, HasRemove: false);
+    private static readonly FixtureRow EntranceRow = new(Entrance, ChapterType: 1, PlayerSelectId: Student, MapPointId: 1, MapChapter: 0, MapType: 1, PosType: 1, IsLootSeed: false, HasMove: true, HasRemove: false, SlotType: 3);
+
+    private const int Ladder = 80127;
+
+    /// <summary>The Female College Student's basement ladder up to the house: ChapterType 2, map 101 (the basement, a home floor), a fixed point, Move and Remove, no build spot.</summary>
+    private static readonly FixtureRow LadderRow = new(Ladder, ChapterType: 2, PlayerSelectId: Student, MapPointId: 101, MapChapter: 0, MapType: 1, PosType: 1, IsLootSeed: false, HasMove: true, HasRemove: true, SlotType: PackRules.NoSpotSlotType);
 
     private static HomeCopies Copies(
         int[]? standing = null,
@@ -171,6 +183,55 @@ public class FixtureRepairTests
         var lost = FixtureRepair.Find(new[] { EntranceRow, EntranceRow with { PlayerSelectId = 0 } }, Chapter, Student, Copies(packages: new[] { (900L, Entrance), (901L, Entrance) }));
 
         Assert.Single(lost);
+    }
+
+    [Fact]
+    public void A_packed_ladder_in_the_yard_is_found_with_its_package()
+    {
+        var lost = FixtureRepair.Find(new[] { LadderRow }, chapterId: 2, Student, Copies(packages: new[] { (901L, Ladder) }));
+
+        Assert.Equal(new LostFixture(Ladder, new FixtureCopy.Package(901)), Assert.Single(lost));
+    }
+
+    [Fact]
+    public void A_packed_ladder_in_the_bank_is_found_with_its_slot()
+    {
+        var lost = FixtureRepair.Find(new[] { LadderRow }, chapterId: 2, Student, Copies(banked: new[] { (5, Ladder) }, demolished: new[] { Ladder }));
+
+        Assert.Equal(new LostFixture(Ladder, new FixtureCopy.Banked(5)), Assert.Single(lost));
+    }
+
+    [Fact]
+    public void A_ladder_the_player_removed_on_the_Layout_screen_stays_removed()
+    {
+        Assert.Empty(FixtureRepair.Find(new[] { LadderRow }, chapterId: 2, Student, Copies(demolished: new[] { Ladder })));
+    }
+
+    [Fact]
+    public void Only_the_entrance_and_the_ladders_count_as_taken_by_an_older_Pack_up()
+    {
+        Assert.True(FixtureRepair.IsTakenByOldPackUp(EntranceRow));
+        Assert.True(FixtureRepair.IsTakenByOldPackUp(LadderRow));
+        Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { SlotType = 1 }));
+        Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { HasMove = false }));
+        Assert.False(FixtureRepair.IsTakenByOldPackUp(LadderRow with { MapType = 2 }));
+    }
+
+    [Fact]
+    public void The_repair_button_says_when_nothing_needed_fixing()
+    {
+        Assert.StartsWith("nothing needed fixing", FixtureRepair.Describe(Array.Empty<string>(), Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void The_repair_button_names_what_it_set_down_and_what_it_could_not()
+    {
+        var text = FixtureRepair.Describe(new[] { "Basement entrance (80057)", "Stairs (80127)" }, new[] { "Stairs (80055)" });
+
+        Assert.Contains("set down again where the game puts them: Basement entrance (80057), Stairs (80127)", text);
+        Assert.Contains("could not set down", text);
+        Assert.Contains("Stairs (80055)", text);
+        Assert.DoesNotContain("nothing needed fixing", text);
     }
 
     [Theory]

@@ -8,8 +8,8 @@ using PackageBank.Core;
 namespace PackageBank.Adapters;
 
 /// <summary>
-/// Sets the home's fixtures down again when an older Pack up took them (the basement entrance): once per loaded save,
-/// at home. The game's own load call puts each one back where it belongs, with every other fixture held back, and the
+/// Sets the home's fixtures down again when an older Pack up took them (the basement entrance, the ladders): once per
+/// loaded save at home, and whenever Cheat Menu's repair button asks. The game's own load call puts each one back where it belongs, with every other fixture held back, and the
 /// copy the player was left with (a piece on a build spot, a yard package or a bank entry) goes only once the fixture
 /// stands again. The game never sets down a fixture it recorded as taken down, so that record is dropped first, and
 /// put back if the fixture does not appear.
@@ -21,6 +21,9 @@ internal sealed class HomeFixtures
 
     public HomeFixtures(Action<string> log) => _log = log;
 
+    /// <summary>The fixtures one repair set down again and the ones that would not go, by name.</summary>
+    public sealed record Outcome(IReadOnlyList<string> SetDown, IReadOnlyList<string> Kept);
+
     /// <summary>True when something was set down again, so the shop's counts change.</summary>
     public bool RepairOnce(
         ConfigManager config,
@@ -28,29 +31,53 @@ internal sealed class HomeFixtures
         LeadingRole role,
         BuildComponent build,
         IReadOnlyList<BankEntry> banked,
-        Action<int> clearEntry)
+        Action<int> clearEntry,
+        Func<int, string> nameOf)
     {
         if (agents.Pointer == _checked || !IsAtHome(config, role)) return false;
 
+        // Marked first, so a repair that throws is not tried again on every read of the bank.
+        _checked = agents.Pointer;
+
+        var outcome = Repair(config, agents, build, banked, clearEntry, nameOf);
+
+        if (outcome == null) _checked = IntPtr.Zero;
+
+        return outcome?.SetDown.Count > 0;
+    }
+
+    /// <summary>One repair now, for a player at home (the caller checks). Null when the save or the game's table is not there yet.</summary>
+    public Outcome? Repair(
+        ConfigManager config,
+        AgentManager agents,
+        BuildComponent build,
+        IReadOnlyList<BankEntry> banked,
+        Action<int> clearEntry,
+        Func<int, string> nameOf)
+    {
         var save = GameSingleton.Existing<GameSaveManager>()?.gameSave;
         var table = config._Config_GuidanceFurniture_Dict;
 
-        if (save == null || table == null) return false;
-
-        _checked = agents.Pointer;
+        if (save == null || table == null) return null;
 
         var chapter = save.InitChapterId;
         var character = ConfigManager.GetCurrentPlayerSelectId();
         var rows = Rows(config, table);
         var lost = FixtureRepair.Find(rows, chapter, character, Copies(config, agents, build, banked, rows));
-        var isRepaired = false;
+        var setDown = new List<string>();
+        var kept = new List<string>();
 
-        foreach (var fixture in lost) isRepaired |= SetDown(agents, build, table, chapter, character, fixture, clearEntry);
+        foreach (var fixture in lost)
+        {
+            var name = $"{nameOf(fixture.FurnitureId)} ({fixture.FurnitureId})";
 
-        return isRepaired;
+            (SetDown(agents, build, table, chapter, character, fixture, clearEntry) ? setDown : kept).Add(name);
+        }
+
+        return new Outcome(setDown, kept);
     }
 
-    private static bool IsAtHome(ConfigManager config, LeadingRole role)
+    public static bool IsAtHome(ConfigManager config, LeadingRole role)
     {
         var user = AgentTools.GetAgentComponent<UserComponent>(role);
 
@@ -80,7 +107,8 @@ internal sealed class HomeFixtures
                 row.PosType,
                 row.IsLootSeed,
                 furniture?.MoveFunc is { Count: > 0 },
-                furniture?.RemoveFunc is { Count: > 0 }));
+                furniture?.RemoveFunc is { Count: > 0 },
+                furniture?.SlotType ?? PackRules.NoSpotSlotType));
         }
 
         return rows;
@@ -92,7 +120,7 @@ internal sealed class HomeFixtures
 
         foreach (var row in rows)
         {
-            if (row.HasMove && !row.HasRemove) fixtures.Add(row.FurnitureId);
+            if (FixtureRepair.IsTakenByOldPackUp(row)) fixtures.Add(row.FurnitureId);
         }
 
         var standing = new HashSet<int>();

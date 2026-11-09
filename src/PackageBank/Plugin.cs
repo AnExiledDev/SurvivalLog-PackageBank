@@ -65,6 +65,7 @@ public sealed class Plugin : BasePlugin
         var session = new BankSession(bank, new BankPage(log.Write), log.Write);
 
         PackageBankApi.Use(bank, log.Write);
+        DevCheats.Use(bank);
 
         log.Write($"===== Package Bank {Version} started");
         session.MenuHooked(MenuOpening.Apply(hooks, session.MenuOpened));

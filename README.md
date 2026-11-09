@@ -24,7 +24,7 @@ Works in English and Chinese.
 - **To refund a banked package, take it out first**, then use the shop's own Refund button.
 - **Looted packages stay non-refundable** after a trip through the bank. A packed-up piece is the exception: it can always be refunded.
 - **On the Layout screen a packed-up package can't be clicked**, like every yard package there. Leave Layout, then install it.
-- **Pack up takes only what the Layout screen can remove.** The basement entrance and the shops you visit before the disaster have no Pack up. A basement entrance packed up with 0.7.0 goes back where it was the next time you load the save at home.
+- **Pack up takes only what the Layout screen can remove.** The basement entrance, the ladders between floors and the shops you visit before the disaster have no Pack up. A basement entrance or ladder packed up with 0.7.0 goes back where it was the next time you load the save at home; with Cheat Menu installed, its "Fix the basement entrance and ladders" button on the Mod tests tab does it right away.
 - **A custom name is lost when a piece is packed up.** A package has no name of its own, so the piece comes back with the game's name.
 - A package being moved or installed cannot be banked. Car and door boxes cannot be banked.
 - On an expedition the panel and the HUD button are hidden.

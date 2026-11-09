@@ -3,8 +3,10 @@
 ## 0.7.1
 
 - Fix: Pack up is no longer offered on the basement entrance, or on any piece the Layout screen has no Remove for. A packed-up entrance could not go back where it was.
+- Fix: Pack up is no longer offered on the ladders between floors, or on anything else that stands on no build spot. Its package could not be installed anywhere.
 - Fix: Pack up is no longer offered on furniture in the shops you visit before the disaster. Pressing it there gave an error.
-- A basement entrance packed up with 0.7.0 goes back where it was when you load the save at home. Its package, its bank entry, or the copy installed on a large spot goes away.
+- A basement entrance or ladder packed up with 0.7.0 goes back where it was when you load the save at home. Its package, its bank entry, or the copy installed on a large spot goes away.
+- New Cheat Menu button on the Mod tests tab, "Fix the basement entrance and ladders": does the same repair right away, at home. On a save with nothing broken it says nothing needed fixing.
 - Made for Survival Log 1.1.20719.
 
 ## 0.7.0
