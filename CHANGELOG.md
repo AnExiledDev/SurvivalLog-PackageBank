@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2
+
+- New setting `PackUp`, on by default: set it to false to take Pack up out of the click menu on placed furniture. It applies at once.
+- Made for Survival Log 1.1.20719.
+
 ## 0.7.1
 
 - Fix: Pack up is no longer offered on the basement entrance, or on any piece the Layout screen has no Remove for. A packed-up entrance could not go back where it was.

@@ -26,8 +26,11 @@ public readonly record struct BankBonus(int Large, int Medium, int Small)
     };
 }
 
-/// <summary>The size limits from the settings. Story items never have one, and nothing does when limits are off.</summary>
-public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small, int Defense)
+/// <summary>
+/// The size limits from the settings. Story items never have one, and nothing does when limits are off. IsPackUpOn is
+/// the PackUp setting: off, the click menu on placed furniture gets no Pack up entry and a press packs nothing.
+/// </summary>
+public sealed record BankLimits(bool IsLimited, int Large, int Medium, int Small, int Defense, bool IsPackUpOn = true)
 {
     /// <summary>How many packages of a size the bank holds, or null for no limit.</summary>
     public int? Capacity(PackageSize size, BankBonus bonus)

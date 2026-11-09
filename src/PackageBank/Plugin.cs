@@ -19,7 +19,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.7.1";
+    private const string Version = "0.7.2";
 
     /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
@@ -59,6 +59,9 @@ public sealed class Plugin : BasePlugin
             "How many defense packages (sandbags, spike barriers and other defenses) the bank holds while LimitBySize is on. 4 by default, from 0 to 100.\n" +
             "LimitBySize 开启时仓库可存放的防御设施包裹（沙包、尖刺障碍等）数量。默认 4，可设为 0 到 100。",
             new AcceptableValueRange<int>(0, MaxSlots), WorldRule.Tag));
+        var packUp = Config.Bind("Furniture", "PackUp", true, new ConfigDescription(
+            "Add Pack up to the click menu on placed furniture, to turn a piece back into its package. Set to false to take the entry away.\n" +
+            "在已摆放家具的点击菜单中加入「打包」，把家具变回包裹。设为 false 则不显示该选项。"));
         var log = new ModLog(Log, LogFileName);
         var hooks = new PatchKit(new Harmony(Guid), log.Write);
         var bank = new GameBank(new GameShop(log.Write), log.Write);
@@ -72,11 +75,11 @@ public sealed class Plugin : BasePlugin
 
         LiveSettings.Watch(() =>
         {
-            var limits = new BankLimits(limitBySize.Value, largeSlots.Value, mediumSlots.Value, smallSlots.Value, defenseSlots.Value);
+            var limits = new BankLimits(limitBySize.Value, largeSlots.Value, mediumSlots.Value, smallSlots.Value, defenseSlots.Value, packUp.Value);
 
             session.UseLimits(limits);
-            log.Write(limits.IsLimited ? $"limits: {limits.Large} large, {limits.Medium} medium, {limits.Small} small, {limits.Defense} defense" : "limits off");
-        }, limitBySize, largeSlots, mediumSlots, smallSlots, defenseSlots);
+            log.Write((limits.IsLimited ? $"limits: {limits.Large} large, {limits.Medium} medium, {limits.Small} small, {limits.Defense} defense" : "limits off") + (limits.IsPackUpOn ? ", pack up on" : ", pack up off"));
+        }, limitBySize, largeSlots, mediumSlots, smallSlots, defenseSlots, packUp);
 
         BankTicker.Session = session;
         BankTicker.Log = log.Write;

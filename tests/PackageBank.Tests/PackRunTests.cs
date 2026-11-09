@@ -142,6 +142,19 @@ public class PackRunTests
     }
 
     [Fact]
+    public void With_PackUp_off_a_press_left_over_from_before_packs_nothing()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Bed);
+
+        var outcome = PackRun.PackMenu(game, Defaults with { IsPackUpOn = false });
+
+        Assert.Equal(new BankOutcome.Gone(), outcome);
+        Assert.Empty(game.TakenDown);
+        Assert.Empty(game.Home);
+    }
+
+    [Fact]
     public void A_piece_the_game_failed_to_take_down_is_reported_as_a_failure()
     {
         var game = new FakeGame { IsPackUpBroken = true };

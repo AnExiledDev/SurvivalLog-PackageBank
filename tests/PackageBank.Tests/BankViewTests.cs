@@ -142,6 +142,17 @@ public class BankViewTests
     }
 
     [Fact]
+    public void With_PackUp_off_the_click_menu_on_a_placed_piece_gets_no_pack_up_entry()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Table);
+
+        var pack = View(game, Defaults with { IsPackUpOn = false }).GetProperty("pack");
+
+        Assert.Equal(JsonValueKind.Null, pack.ValueKind);
+    }
+
+    [Fact]
     public void A_pack_up_entry_carries_why_it_is_refused_and_the_games_own_words_for_a_blocked_piece()
     {
         var game = new FakeGame();

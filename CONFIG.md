@@ -14,6 +14,12 @@ Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created t
 
 Story Items have no limit. Lowering a limit below what is already banked keeps those packages in the bank; nothing more of that size goes in until the count drops below the limit.
 
+## Furniture
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `PackUp` | `true` | Adds `Pack up` to the click menu on placed furniture. `false` takes the entry away at once, and a click menu already open loses it. |
+
 ## Interface
 
 | Setting | Default | What it does |

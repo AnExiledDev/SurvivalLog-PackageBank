@@ -70,7 +70,7 @@ public static class BankView
     /// </summary>
     private static string Pack(Bank bank, BankLimits limits)
     {
-        if (bank.Piece is not { } piece) return "null";
+        if (!limits.IsPackUpOn || bank.Piece is not { } piece) return "null";
 
         var refusal = PackRun.Refusal(bank, limits, piece);
         var why = refusal switch

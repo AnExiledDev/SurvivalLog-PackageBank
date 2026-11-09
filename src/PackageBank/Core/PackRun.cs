@@ -18,6 +18,8 @@ public static class PackRun
     /// </summary>
     public static BankOutcome PackMenu(IBankGame game, BankLimits limits)
     {
+        if (!limits.IsPackUpOn) return new BankOutcome.Gone();
+
         return game.Read() switch
         {
             BankRead.Ready { Bank.Piece: { } piece } ready => PackFound(game, limits, ready.Bank, piece),
