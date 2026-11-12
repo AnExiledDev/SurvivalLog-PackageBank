@@ -30,14 +30,14 @@
     spotsFree: '{0} free package spots in the yard', spotFree: '1 free package spot in the yard',
     noRefund: 'Not refundable', busy: 'Being moved or installed', notBankable: "Can't be banked",
     full: 'Bank full for this size', shelfFull: 'bank full', noSpot: 'No free package spot',
-    noSpotNote: 'No free package spot in the yard. Install, refund or bank a package to take one out.',
+    noSpotNote: 'No free package spot in the yard. Install, refund or bank a package to make room, then take one out.',
     emptyHome: 'No packages in the yard.', emptyHomeHint: 'Packages you buy in the build shop land here.',
     emptyBank: 'The bank is empty.', emptyBankHint: 'Press Bank on a package in the yard to store it here.',
     emptyShelf: 'Nothing from the {0} shelf here.', showing: 'Showing {0} only', showAll: 'Show all',
     escClose: 'Esc to close', packUp: 'Pack up', holdsItems: 'Empty it first: it still holds items',
     noRoom: 'No free package spot, and no room in the bank',
     packToBank: 'Goes into the bank: the yard has no free package spot',
-    storyWarn: 'The story uses this. Install it again if the story stops moving.'
+    storyWarn: 'The story uses this. Install it again if the story gets stuck.'
   };
   // Arrows for Bank and Take out, and the warning sign of the no-spot notice, on the same 24-unit grid.
   var ARROW_IN_PATH = 'M4 11h11.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H4z';

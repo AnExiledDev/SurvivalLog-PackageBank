@@ -153,7 +153,7 @@ public class PageScriptTests
 
         Assert.Empty(page.Sent);
         Assert.Equal(1, page.Count($"{BankList}.querySelectorAll('.pb-notice')"));
-        Assert.Contains("Install, refund or bank a package to take one out.", page.Text($"{BankList}.textContent"));
+        Assert.Contains("Install, refund or bank a package to make room, then take one out.", page.Text($"{BankList}.textContent"));
         Assert.True(page.Is("panelButton('takeout', 1).disabled"));
         Assert.Contains("0 free package spots in the yard", page.Text(Panel));
         Assert.True(page.Is("document.querySelector('.pb-spots').classList.contains('pb-bad')"));
@@ -246,8 +246,8 @@ public class PageScriptTests
         page.Run(PageWords.Script(isChinese: true));
         page.Open(ViewOf(new FakeGame()));
 
-        Assert.Contains("院子里没有包裹。", page.Text(Panel));
-        Assert.Contains("院子里 0 个，仓库中 0 个", page.Text(Panel));
+        Assert.Contains("屋外空地上没有包裹。", page.Text(Panel));
+        Assert.Contains("屋外空地上 0 个，仓库中 0 个", page.Text(Panel));
         Assert.Contains("无上限", page.Text(Panel));
     }
 
@@ -695,7 +695,7 @@ public class PageScriptTests
 
         page.Run(PageWords.Script(isChinese: true) + $"window.__slpkgbank.setData({view})");
 
-        Assert.Contains("院子里没有包裹。", page.Text(Panel));
+        Assert.Contains("屋外空地上没有包裹。", page.Text(Panel));
         Assert.DoesNotContain("No packages in the yard.", page.Text(Panel));
     }
 

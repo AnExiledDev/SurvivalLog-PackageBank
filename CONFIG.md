@@ -1,6 +1,6 @@
 # Package Bank settings
 
-Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Changed on the Mods screen, every setting takes effect at once. Each world can keep its own size limits: every setting in Bank. Pick them for a new world in Customizable Difficulty, or, while you play, change them for that world alone on the Mods screen. Delete the file to get the defaults back.
+Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Every setting you change on the Mods screen takes effect right away. Each world can keep its own size limits (every setting under Bank). Pick them for a new world in Customizable Difficulty, or change them for the world you're playing on the Mods screen. Delete the file to get the defaults back.
 
 ## Bank
 
@@ -12,13 +12,13 @@ Settings live in `BepInEx\config\com.dev.survivallog.packagebank.cfg`, created t
 | `SmallSlots` | `8` | How many small packages the bank holds. Any number from 0 to 100. |
 | `DefenseSlots` | `4` | How many defense packages (sandbags, spike barriers and other defenses) the bank holds. Any number from 0 to 100. |
 
-Story Items have no limit. Lowering a limit below what is already banked keeps those packages in the bank; nothing more of that size goes in until the count drops below the limit.
+Story Items have no limit. If you lower a limit below what's already banked, those packages stay in the bank. Nothing more of that size goes in until there are fewer than the limit.
 
 ## Furniture
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `PackUp` | `true` | Adds `Pack up` to the click menu on placed furniture. `false` takes the entry away at once, and a click menu already open loses it. |
+| `PackUp` | `true` | Adds `Pack up` to the click menu on placed furniture. Set it to `false` to remove the entry. The change applies right away, even to a click menu that's already open. |
 
 ## Interface
 

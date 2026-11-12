@@ -109,12 +109,12 @@ public static class FixtureRepair
     /// <summary>What the Cheat Menu button reports: the fixtures set down again, and those that would not go.</summary>
     public static string Describe(IReadOnlyList<string> setDown, IReadOnlyList<string> kept)
     {
-        if (setDown.Count == 0 && kept.Count == 0) return "nothing needed fixing: the basement entrance, the ladders and the other fixtures stand where the game puts them";
+        if (setDown.Count == 0 && kept.Count == 0) return "nothing needed fixing: the basement entrance, the ladders and the other fixtures are all where they belong";
 
         var parts = new List<string>();
 
-        if (setDown.Count > 0) parts.Add($"set down again where the game puts them: {string.Join(", ", setDown)}");
-        if (kept.Count > 0) parts.Add($"could not set down, so the copy you have stays (see the log): {string.Join(", ", kept)}");
+        if (setDown.Count > 0) parts.Add($"put back where they belong: {string.Join(", ", setDown)}");
+        if (kept.Count > 0) parts.Add($"could not put back, so your copy stays (see the log): {string.Join(", ", kept)}");
 
         return string.Join(". ", parts);
     }

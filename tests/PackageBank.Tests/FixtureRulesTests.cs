@@ -244,8 +244,8 @@ public class FixtureRepairTests
     {
         var text = FixtureRepair.Describe(new[] { "Basement entrance (80057)", "Stairs (80127)" }, new[] { "Stairs (80055)" });
 
-        Assert.Contains("set down again where the game puts them: Basement entrance (80057), Stairs (80127)", text);
-        Assert.Contains("could not set down", text);
+        Assert.Contains("put back where they belong: Basement entrance (80057), Stairs (80127)", text);
+        Assert.Contains("could not put back", text);
         Assert.Contains("Stairs (80055)", text);
         Assert.DoesNotContain("nothing needed fixing", text);
     }

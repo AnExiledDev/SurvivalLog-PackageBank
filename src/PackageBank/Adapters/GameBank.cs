@@ -456,7 +456,7 @@ internal sealed class GameBank : IBankGame
         var counters = Counters();
 
         if (build == null || counters == null) return "load a save first";
-        if (world.GameModeKey != GameMode.Default || !HomeFixtures.IsAtHome(config, role)) return "go home first: the repair works in your home";
+        if (world.GameModeKey != GameMode.Default || !HomeFixtures.IsAtHome(config, role)) return "go home first: the repair only works at home";
 
         HomeFixtures.Outcome? outcome;
 

@@ -20,18 +20,18 @@ public static class Texts
     public static readonly Phrase Full = new("The bank is full for {0} packages ({1} of {1}).", "仓库的{0}包裹已存满（{1}/{1}）。");
 
     public static readonly Phrase Stored = new("{0} put in the bank.", "{0}已存入仓库。");
-    public static readonly Phrase NoSpot = new("No free package spot at home: install, refund or bank a package first.", "家里没有空的包裹位置：请先安装、退还或存入一个包裹。");
+    public static readonly Phrase NoSpot = new("No free package spot at home: install, refund or bank a package first.", "家里没有空的包裹位置：请先安装、退货或存入一个包裹。");
     public static readonly Phrase TakenOut = new("{0} taken out of the bank.", "{0}已从仓库取出。");
     public static readonly Phrase HoldsItems = new("Empty {0} first: it still holds items.", "请先清空{0}：里面还有物品。");
 
     /// <summary>{1} is the game's reason.</summary>
     public static readonly Phrase Blocked = new("{0} can't be packed up right now: {1}", "{0}现在无法打包：{1}");
 
-    public static readonly Phrase NoRoom = new("No free package spot in the yard, and no room in the bank for {0}.", "院子里没有空的包裹位置，仓库也放不下{0}。");
-    public static readonly Phrase PackedUp = new("{0} packed up. Its package is in the yard.", "{0}已打包，包裹在院子里。");
-    public static readonly Phrase PackedUpIntoBank = new("{0} packed up into the bank: the yard had no free package spot.", "{0}已打包存入仓库：院子里没有空的包裹位置。");
+    public static readonly Phrase NoRoom = new("No free package spot in the yard, and no room in the bank for {0}.", "屋外空地上没有空的包裹位置，仓库也放不下{0}。");
+    public static readonly Phrase PackedUp = new("{0} packed up. Its package is in the yard.", "{0}已打包，包裹在屋外空地上。");
+    public static readonly Phrase PackedUpIntoBank = new("{0} packed up into the bank: the yard had no free package spot.", "{0}已打包存入仓库：屋外空地上没有空的包裹位置。");
     public static readonly Phrase LayoutNote = new("Leave Layout to install it.", "退出「布局」后才能安装它。");
-    public static readonly Phrase StoryNote =new("The story uses it: install it again if the story stops moving.", "剧情会用到它：如果剧情没有进展，请重新安装。");
+    public static readonly Phrase StoryNote = new("The story uses it: install it again if the story gets stuck.", "剧情会用到它：如果剧情卡住，请重新安装。");
     /// <summary>Who a toast is from, on its first line.</summary>
     public static readonly Phrase Source = new("Package Bank", "包裹仓库");
 
@@ -48,8 +48,8 @@ public static class Texts
     {
         ("title", new("Package Bank", "包裹仓库")),
         ("tip", new("Store packages for later and take them out again", "把包裹存起来，需要时再取出")),
-        ("counts", new("{0} in the yard, {1} in the bank", "院子里 {0} 个，仓库中 {1} 个")),
-        ("inYard", new("In the yard", "院子里")),
+        ("counts", new("{0} in the yard, {1} in the bank", "屋外空地上 {0} 个，仓库中 {1} 个")),
+        ("inYard", new("In the yard", "屋外空地上")),
         ("inBankTitle", new("In the bank", "仓库中")),
         ("inBank", new("In the bank ({0})", "仓库中（{0}）")),
         ("bank", new("Bank", "存入")),
@@ -60,19 +60,19 @@ public static class Texts
         ("story", new("Story Items", "剧情物品")),
         ("defense", new("Defenses", "防御设施")),
         ("noLimit", new("No limit", "无上限")),
-        ("spotsFree", new("{0} free package spots in the yard", "院子里有 {0} 个空的包裹位置")),
-        ("spotFree", new("1 free package spot in the yard", "院子里有 1 个空的包裹位置")),
-        ("noRefund", new("Not refundable", "不可退还")),
+        ("spotsFree", new("{0} free package spots in the yard", "屋外空地上有 {0} 个空的包裹位置")),
+        ("spotFree", new("1 free package spot in the yard", "屋外空地上有 1 个空的包裹位置")),
+        ("noRefund", new("Not refundable", "不可退货")),
         ("busy", new("Being moved or installed", "正在搬运或安装")),
         ("notBankable", new("Can't be banked", "无法存入")),
         ("full", new("Bank full for this size", "该尺寸已存满")),
         ("shelfFull", new("bank full", "仓库已满")),
         ("noSpot", new("No free package spot", "没有空的包裹位置")),
-        ("noSpotNote", new("No free package spot in the yard. Install, refund or bank a package to take one out.", "院子里没有空的包裹位置。请先安装、退还或存入一个包裹，再取出。")),
-        ("emptyHome", new("No packages in the yard.", "院子里没有包裹。")),
+        ("noSpotNote", new("No free package spot in the yard. Install, refund or bank a package to make room, then take one out.", "屋外空地上没有空的包裹位置。请先安装、退货或存入一个包裹腾出位置，再取出。")),
+        ("emptyHome", new("No packages in the yard.", "屋外空地上没有包裹。")),
         ("emptyHomeHint", new("Packages you buy in the build shop land here.", "在建造商店买的包裹会出现在这里。")),
         ("emptyBank", new("The bank is empty.", "仓库是空的。")),
-        ("emptyBankHint", new("Press Bank on a package in the yard to store it here.", "在院子里的包裹上按「存入」，就能把它存到这里。")),
+        ("emptyBankHint", new("Press Bank on a package in the yard to store it here.", "在屋外空地的包裹上按「存入」，就能把它存到这里。")),
         ("emptyShelf", new("Nothing from the {0} shelf here.", "这里没有「{0}」类的包裹。")),
         ("showing", new("Showing {0} only", "只显示「{0}」")),
         ("showAll", new("Show all", "显示全部")),
@@ -80,8 +80,8 @@ public static class Texts
         ("packUp", new("Pack up", "打包")),
         ("holdsItems", new("Empty it first: it still holds items", "请先清空：里面还有物品")),
         ("noRoom", new("No free package spot, and no room in the bank", "没有空的包裹位置，仓库也放不下")),
-        ("packToBank", new("Goes into the bank: the yard has no free package spot", "将存入仓库：院子里没有空的包裹位置")),
-        ("storyWarn", new("The story uses this. Install it again if the story stops moving.", "剧情会用到它。如果剧情没有进展，请重新安装。")),
+        ("packToBank", new("Goes into the bank: the yard has no free package spot", "将存入仓库：屋外空地上没有空的包裹位置")),
+        ("storyWarn", new("The story uses this. Install it again if the story gets stuck.", "剧情会用到它。如果剧情卡住，请重新安装。")),
     };
 
     public static IReadOnlyList<Phrase> All { get; } = Collect();
