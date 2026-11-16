@@ -15,7 +15,8 @@ namespace PackageBank.Adapters;
 /// again before every save loads, so a piece saved on one of them keeps its spot. Once a second at home, each spot that
 /// should show gets its points on the map (the fixture's point, and a stand point copied from the nearest game spot of
 /// its type) and a clickable box copied from that spot's box; a spot that should no longer show loses both. While
-/// Uninstall prep is on, every piece on one of these spots is packed into a yard package.
+/// Uninstall prep is on, every piece on one of these spots is packed into a yard package. The full pass runs only when
+/// something it is drawn from changed, or every few seconds (<see cref="FixtureSpots.IsFullCheckDue"/>).
 /// </summary>
 internal sealed class FixtureSpotsLive
 {
@@ -27,6 +28,11 @@ internal sealed class FixtureSpotsLive
     private readonly HashSet<string> _reported = new();
     private readonly HashSet<long> _refused = new();
     private readonly Dictionary<string, GameObject> _boxes = new();
+    private readonly Dictionary<string, long> _taken = new();
+    private readonly HashSet<string> _takenNames = new();
+    private readonly HashSet<int> _demolished = new();
+    private readonly HashSet<string> _pointsOnMap = new();
+    private readonly HashSet<string> _shown = new();
 
     private IntPtr _guidance;
     private IReadOnlyList<FixtureSpot> _spots = Array.Empty<FixtureSpot>();
@@ -35,7 +41,9 @@ internal sealed class FixtureSpotsLive
     private IntPtr _map;
     private Transform? _root;
     private float _nextCheck;
-    private volatile bool _isOn = true;
+    private float _nextFullCheck;
+    private HomeStamp _stamp;
+    private volatile bool _isOn;
     private volatile bool _isUninstalling;
     private volatile int _settingsVersion;
     private int _usedVersion;
@@ -74,7 +82,7 @@ internal sealed class FixtureSpotsLive
             if (GameSingleton.Existing<ConfigManager>() is not { } config) return;
 
             EnsureRows(config);
-            ApplyHome(config);
+            ApplyHome(config, now);
         }
         catch (Exception ex)
         {
@@ -148,7 +156,7 @@ internal sealed class FixtureSpotsLive
 
     // ---- the loaded home ----
 
-    private void ApplyHome(ConfigManager config)
+    private void ApplyHome(ConfigManager config, float now)
     {
         var map = config._customCache_k__BackingField?._MapConfig_k__BackingField;
         var agents = GameSingleton.Existing<BattleLogicWorld>()?._AgentManager;
@@ -165,18 +173,34 @@ internal sealed class FixtureSpotsLive
             _root = null;
         }
 
-        var taken = Taken(agents);
+        var isStampSame = HomeStamp.Of(map, agents, build, _usedVersion, _root) == _stamp;
 
-        if (_isUninstalling) PackUp(taken);
+        if (!FixtureSpots.IsFullCheckDue(isStampSame, _isUninstalling, now, _nextFullCheck)) return;
 
-        var shown = FixtureSpots.Shown(_spots, Demolished(build), PointsOnMap(map), new HashSet<string>(taken.Keys), _isOn, _isUninstalling);
+        _nextFullCheck = now + FixtureSpots.FullCheckSeconds;
+        ReadTaken(agents);
+
+        if (_isUninstalling) PackUp();
+
+        ReadDemolished(build);
+        ReadPointsOnMap(map);
+        FixtureSpots.Shown(_spots, _demolished, _pointsOnMap, _takenNames, _isOn, _isUninstalling, _shown);
+        OpenAndClose(config, map);
+
+        // Taken after the spots opened and closed, since that writes to the map and finds the box root.
+        _stamp = HomeStamp.Of(map, agents, build, _usedVersion, _root);
+    }
+
+    private void OpenAndClose(ConfigManager config, Config_Map map)
+    {
+        var positions = map._BuildingNodeMap_k__BackingField;
 
         foreach (var spot in _spots)
         {
             var hasBox = _boxes.TryGetValue(spot.Name, out var box) && box != null;
-            var hasPoint = map._BuildingNodeMap_k__BackingField?.ContainsKey(spot.Name) == true;
+            var hasPoint = positions?.ContainsKey(spot.Name) == true;
 
-            if (shown.Contains(spot.Name))
+            if (_shown.Contains(spot.Name))
             {
                 if (!hasBox) Show(config, map, spot);
             }
@@ -188,10 +212,12 @@ internal sealed class FixtureSpotsLive
     }
 
     /// <summary>The pieces standing on these spots, by spot name, as the game keeps the spot for each piece.</summary>
-    private static Dictionary<string, long> Taken(AgentManager agents)
+    private void ReadTaken(AgentManager agents)
     {
-        var taken = new Dictionary<string, long>();
         var furnitures = agents.GetAllFurnitures();
+
+        _taken.Clear();
+        _takenNames.Clear();
 
         for (var i = 0; furnitures != null && i < furnitures.Count; i++)
         {
@@ -201,16 +227,17 @@ internal sealed class FixtureSpotsLive
 
             var name = AgentTools.GetAgentComponent<SlotComponent>(furniture)?._SlotName_k__BackingField;
 
-            if (name is { } spot && FixtureSpots.IsOurs(spot)) taken[spot] = furniture.InstanceId;
-        }
+            if (name is not { } spot || !FixtureSpots.IsOurs(spot)) continue;
 
-        return taken;
+            _taken[spot] = furniture.InstanceId;
+            _takenNames.Add(spot);
+        }
     }
 
     /// <summary>A piece the game will not let go is logged once and tried again only after a settings change.</summary>
-    private void PackUp(Dictionary<string, long> taken)
+    private void PackUp()
     {
-        foreach (var (name, id) in taken)
+        foreach (var (name, id) in _taken)
         {
             if (_refused.Contains(id)) continue;
 
@@ -226,31 +253,29 @@ internal sealed class FixtureSpotsLive
         }
     }
 
-    private static IReadOnlySet<int> Demolished(BuildComponent build)
+    private void ReadDemolished(BuildComponent build)
     {
-        var demolished = new HashSet<int>();
         var record = build.GetDemolishedGuidanceIds();
 
-        if (record == null) return demolished;
+        _demolished.Clear();
 
-        foreach (var id in record) demolished.Add(id);
+        if (record == null) return;
 
-        return demolished;
+        foreach (var id in record) _demolished.Add(id);
     }
 
-    private IReadOnlySet<string> PointsOnMap(Config_Map map)
+    private void ReadPointsOnMap(Config_Map map)
     {
-        var points = new HashSet<string>();
         var nodes = map._NodeMap_k__BackingField;
 
-        if (nodes == null) return points;
+        _pointsOnMap.Clear();
+
+        if (nodes == null) return;
 
         foreach (var spot in _spots)
         {
-            if (nodes.ContainsKey(spot.Point)) points.Add(spot.Point);
+            if (nodes.ContainsKey(spot.Point)) _pointsOnMap.Add(spot.Point);
         }
-
-        return points;
     }
 
     // ---- one spot ----
@@ -270,13 +295,13 @@ internal sealed class FixtureSpotsLive
 
         if (Template(config, map, root, spot, position) is not { } template)
         {
-            if (_reported.Add("template " + spot.Name)) _log($"build spot {spot.Name} has no game spot nearby to copy its box from, so it stays shut");
+            if (_reported.Add("template " + spot.Name)) _log($"build spot {spot.Name} has no game spot of its size to copy its box from, so it stays shut");
 
             return;
         }
 
-        var from = (positions[template.Name], rotations.TryGetValue(template.Name, out var turn) ? turn : Quaternion.identity);
-        var to = (position, rotation);
+        var from = PoseOf(positions[template.Name], rotations.TryGetValue(template.Name, out var turn) ? turn : Quaternion.identity);
+        var to = PoseOf(position, rotation);
 
         positions[spot.Name] = position;
         rotations[spot.Name] = rotation;
@@ -284,18 +309,19 @@ internal sealed class FixtureSpotsLive
         if (actions.TryGetValue(template.Name, out var stand))
         {
             var standTurn = actionTurns.TryGetValue(template.Name, out var t) ? t : Quaternion.identity;
-            var moved = Follow(from, to, (stand, standTurn));
+            var moved = SpotMath.Follow(from, to, PoseOf(stand, standTurn));
 
-            actions[spot.Name] = moved.Position;
-            actionTurns[spot.Name] = moved.Rotation;
+            actions[spot.Name] = ToUnity(moved.Position);
+            actionTurns[spot.Name] = ToUnity(moved.Rotation);
         }
 
         var box = Object.Instantiate(template.Box.gameObject, root);
-        var boxPose = Follow(from, to, (template.Box.position, template.Box.rotation));
+        var boxPose = SpotMath.Follow(from, to, PoseOf(template.Box.position, template.Box.rotation));
 
         box.name = spot.Name;
-        box.transform.SetPositionAndRotation(boxPose.Position, boxPose.Rotation);
+        box.transform.SetPositionAndRotation(ToUnity(boxPose.Position), ToUnity(boxPose.Rotation));
         _boxes[spot.Name] = box;
+        LayoutScreen.Join(root, box);
         _log($"build spot {spot.Name} opened where furniture {spot.FurnitureId} stood (box copied from {template.Name})");
     }
 
@@ -305,6 +331,7 @@ internal sealed class FixtureSpotsLive
         map._BuildingNodeRotationMap_k__BackingField?.Remove(spot.Name);
         map._BuildingNodeActionPosMap_k__BackingField?.Remove(spot.Name);
         map._BuildingNodeActionRotationMap_k__BackingField?.Remove(spot.Name);
+        LayoutScreen.Leave(spot.Name);
 
         if (_boxes.Remove(spot.Name, out var box) && box != null) Object.Destroy(box);
 
@@ -312,8 +339,9 @@ internal sealed class FixtureSpotsLive
     }
 
     /// <summary>
-    /// The game spot whose box and stand point the new spot copies: the nearest one of the same type that has a box and
-    /// points, else the nearest of any type.
+    /// The game spot whose box and stand point the new spot copies: the best by <see cref="FixtureSpots.TemplateScore"/>
+    /// among those with a box and points. None when no game spot of the same type has a box, since a box of another size
+    /// would take clicks meant for the spots around it.
     /// </summary>
     private static (string Name, Transform Box)? Template(ConfigManager config, Config_Map map, Transform root, FixtureSpot spot, Vector3 position)
     {
@@ -330,23 +358,20 @@ internal sealed class FixtureSpotsLive
             var name = box.name;
 
             if (FixtureSpots.IsOurs(name) || !slots.TryGetValue(name, out var slot) || slot == null || !positions.TryGetValue(name, out var point)) continue;
+            if (FixtureSpots.TemplateScore(spot, slot.Type, slot.MapID, Vector3.Distance(point, position)) is not { } score || score >= bestScore) continue;
 
-            var score = Vector3.Distance(point, position) + (slot.Type == spot.Type ? 0 : 10_000);
-
-            if (score < bestScore) (best, bestScore) = ((name, box), score);
+            (best, bestScore) = ((name, box), score);
         }
 
         return best;
     }
 
-    /// <summary>Carries a pose that sat relative to one spot to the same place relative to another.</summary>
-    private static (Vector3 Position, Quaternion Rotation) Follow((Vector3 Position, Quaternion Rotation) from, (Vector3 Position, Quaternion Rotation) to, (Vector3 Position, Quaternion Rotation) pose)
-    {
-        var back = Quaternion.Inverse(from.Rotation);
-        var offset = back * (pose.Position - from.Position);
+    private static SpotPose PoseOf(Vector3 position, Quaternion rotation) =>
+        new(new System.Numerics.Vector3(position.x, position.y, position.z), new System.Numerics.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 
-        return (to.Position + to.Rotation * offset, to.Rotation * back * pose.Rotation);
-    }
+    private static Vector3 ToUnity(System.Numerics.Vector3 position) => new(position.X, position.Y, position.Z);
+
+    private static Quaternion ToUnity(System.Numerics.Quaternion rotation) => new(rotation.X, rotation.Y, rotation.Z, rotation.W);
 
     /// <summary>The scene's box root. A copy a former visit left behind is found again by name, so it goes.</summary>
     private Transform? FindRoot()
@@ -394,5 +419,29 @@ internal sealed class FixtureSpotsLive
     private void ReportOnce(string what, Exception ex)
     {
         if (_reported.Add(what + ex.GetType().FullName)) _log($"{what} failed (reported once): {ex}");
+    }
+
+    /// <summary>
+    /// What the spots are drawn from, cheaply read: the map and its spot points, the game's list of everything in the home
+    /// (a piece built or packed up changes it), the taken-down fixtures (only ever added to), the settings, and the box
+    /// root (gone when the scene changes). A piece moved between spots changes none of it; the timed full check catches that.
+    /// </summary>
+    private readonly record struct HomeStamp(IntPtr Map, int PointsVersion, IntPtr Agents, int AgentsVersion, int AgentCount, int Demolished, int Settings, bool HasRoot)
+    {
+        public static HomeStamp Of(Config_Map map, AgentManager agents, BuildComponent build, int settings, Transform? root)
+        {
+            var points = map._BuildingNodeMap_k__BackingField;
+            var list = agents._agentList_k__BackingField;
+
+            return new HomeStamp(
+                map.Pointer,
+                points?._version ?? -1,
+                list?.Pointer ?? IntPtr.Zero,
+                list?._version ?? -1,
+                list?.Count ?? -1,
+                build.GetDemolishedGuidanceIds()?.Count ?? -1,
+                settings,
+                root != null);
+        }
     }
 }

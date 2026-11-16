@@ -19,7 +19,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.8.0";
+    private const string Version = "0.8.1";
 
     /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
@@ -62,9 +62,9 @@ public sealed class Plugin : BasePlugin
         var packUp = Config.Bind("Furniture", "PackUp", true, new ConfigDescription(
             "Add Pack up to the click menu on placed furniture, to turn a piece back into its package. Set to false to take the entry away.\n" +
             "在已摆放家具的点击菜单中加入「打包」，把家具变回包裹。设为 false 则不显示该选项。"));
-        var fixtureSpots = Config.Bind("Furniture", "SpotsWhereFixturesStood", true, new ConfigDescription(
-            "Some of the house's own furniture (cabinets, workbenches, the radio) stands on no build spot. Once one is packed up or removed, a build spot of its size opens where it stood, so it or anything else that size can go back there. Set to false to open no new ones; a spot with furniture on it stays.\n" +
-            "房子自带的部分家具（柜子、工作台、收音机）不在建造位上。打包或拆除后，原位置会出现一个同尺寸的建造位，可以把它或其他同尺寸家具放回去。设为 false 则不再出现新的建造位；已放了家具的建造位会保留。"));
+        var fixtureSpots = Config.Bind("Furniture", "SpotsWhereFixturesStood", false, new ConfigDescription(
+            "Some of the house's own furniture (cabinets, workbenches, the radio) stands on no build spot, so once one is packed up or removed, nothing can go where it stood. Set to true to open a build spot of its size there, so it or anything else that size can go back. Turning it off again opens no new ones; a spot with furniture on it stays.\n" +
+            "房子自带的部分家具（柜子、工作台、收音机）不在建造位上，打包或拆除后，原位置就放不了任何东西。设为 true 则在原位置出现一个同尺寸的建造位，可以把它或其他同尺寸家具放回去。之后再关闭则不再出现新的建造位；已放了家具的建造位会保留。"));
         var uninstallPrep = Config.Bind("Uninstall", "UninstallPrep", false, new ConfigDescription(
             "Turn this on before you remove Package Bank, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package, since the game without the mod has no such spot. Then take everything out of the bank, save, quit, and remove PackageBank.dll. package-bank.log lists every piece, and any that could not be packed (one that still holds items, say).\n" +
             "移除 Package Bank 之前请先打开此项，然后在家中读取存档。所有放在房子原有家具位置建造位上的家具都会打包成屋外空地上的包裹，因为没有此模组时游戏里没有这些建造位。然后把仓库里的东西全部取出，存档、退出游戏，再删除 PackageBank.dll。package-bank.log 会列出每件家具，以及无法打包的家具（比如里面还有物品）。"));
@@ -76,6 +76,7 @@ public sealed class Plugin : BasePlugin
         var spots = new FixtureSpotsLive(bank.PackUpForUninstall, log.Write);
 
         LoadRows.Apply(hooks, spots.BeforeLoad);
+        LayoutScreen.Apply(hooks);
         LiveSettings.Watch(() =>
         {
             spots.Use(fixtureSpots.Value, uninstallPrep.Value);

@@ -1,8 +1,16 @@
 # Changelog
 
+## 0.8.1
+
+- Changed: `SpotsWhereFixturesStood` is now off by default, so updating changes nothing until you turn it on.
+- Fixed: a spot that opened while the Layout screen was open showed on every floor until you opened the screen again. It now shows only on its own floor, like the other spots.
+- A new spot's box is always copied from a spot of the same size, so it is never too big or too small to click.
+- The spots are checked less often while nothing changes at home.
+- Works with Survival Log 1.1.20719 and 1.1.21271.
+
 ## 0.8.0
 
-- Fixed: some of the house's own furniture (cabinets, workbenches, the radio and more) doesn't stand on a build spot. Once you packed one up or removed it, nothing could go where it stood again, not even that piece. Now a build spot of its size opens there, so its package or anything else that size can go back. Setting `SpotsWhereFixturesStood`, on by default.
+- Fixed: some of the house's own furniture (cabinets, workbenches, the radio and more) doesn't stand on a build spot. Once you packed one up or removed it, nothing could go where it stood again, not even that piece. Now a build spot of its size opens there, so its package or anything else that size can go back. Turn it on with the setting `SpotsWhereFixturesStood`.
 - New setting `UninstallPrep` under Uninstall, off by default. Turn it on before you remove the mod: it packs up every piece standing on one of those spots, since the game without the mod has no spot there. The README's Uninstall section has the steps.
 - Works with Survival Log 1.1.20719 and 1.1.21271.
 

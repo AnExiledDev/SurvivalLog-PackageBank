@@ -19,7 +19,7 @@ Story Items have no limit. If you lower a limit below what's already banked, tho
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `PackUp` | `true` | Adds `Pack up` to the click menu on placed furniture. Set it to `false` to remove the entry. The change applies right away, even to a click menu that's already open. |
-| `SpotsWhereFixturesStood` | `true` | Some of the house's own furniture stands on no build spot. Once one is packed up or removed, a build spot of its size opens where it stood. Set it to `false` to stop new ones opening. A spot with furniture on it stays. The change applies right away. |
+| `SpotsWhereFixturesStood` | `false` | Some of the house's own furniture stands on no build spot, so once one is packed up or removed, nothing can go where it stood. Set it to `true` and a build spot of its size opens there. Turning it off again stops new ones opening, and a spot with furniture on it stays. The change applies right away. |
 
 ## Uninstall
 

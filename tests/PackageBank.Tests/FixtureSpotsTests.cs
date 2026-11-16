@@ -124,6 +124,68 @@ public class FixtureSpotsTests
     }
 
     [Fact]
+    public void A_reused_set_holds_only_the_spots_shown_now()
+    {
+        var spots = FixtureSpots.Plan(new[] { CabinetRow });
+        var shown = new HashSet<string>();
+
+        FixtureSpots.Shown(spots, CabinetDown, OnThisMap, None, isOn: true, isUninstalling: false, shown);
+        FixtureSpots.Shown(spots, NothingDown, OnThisMap, None, isOn: true, isUninstalling: false, shown);
+
+        Assert.Empty(shown);
+    }
+
+    // The cabinet's spot is medium, upstairs. Its box is copied from a game spot's box, which sets how big it is to click.
+
+    [Fact]
+    public void A_box_of_another_size_is_never_copied()
+    {
+        var spot = Assert.Single(FixtureSpots.Plan(new[] { CabinetRow }));
+
+        Assert.Null(FixtureSpots.TemplateScore(spot, type: 3, floor: FixtureSpots.Upstairs, distance: 0.5f));
+    }
+
+    [Fact]
+    public void A_box_on_the_same_floor_wins_over_a_nearer_one_on_another_floor()
+    {
+        var spot = Assert.Single(FixtureSpots.Plan(new[] { CabinetRow }));
+        var sameFloorFar = FixtureSpots.TemplateScore(spot, Medium, FixtureSpots.Upstairs, distance: 30);
+        var groundFloorNear = FixtureSpots.TemplateScore(spot, Medium, FixtureSpots.GroundFloor, distance: 3);
+
+        Assert.True(sameFloorFar < groundFloorNear);
+    }
+
+    [Fact]
+    public void Among_boxes_on_the_same_floor_the_nearest_wins()
+    {
+        var spot = Assert.Single(FixtureSpots.Plan(new[] { CabinetRow }));
+
+        Assert.True(FixtureSpots.TemplateScore(spot, Medium, FixtureSpots.Upstairs, 2) < FixtureSpots.TemplateScore(spot, Medium, FixtureSpots.Upstairs, 5));
+    }
+
+    [Fact]
+    public void A_box_on_another_floor_is_still_copied_when_none_on_this_floor_fits()
+    {
+        var spot = Assert.Single(FixtureSpots.Plan(new[] { CabinetRow }));
+
+        Assert.NotNull(FixtureSpots.TemplateScore(spot, Medium, FixtureSpots.GroundFloor, 12));
+    }
+
+    [Fact]
+    public void While_nothing_changes_the_full_check_waits_for_its_timer()
+    {
+        Assert.False(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: false, now: 104, nextFullCheck: 110));
+        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: false, now: 110, nextFullCheck: 110));
+    }
+
+    [Fact]
+    public void A_change_at_home_or_Uninstall_prep_checks_in_full_at_once()
+    {
+        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: false, isUninstalling: false, now: 104, nextFullCheck: 110));
+        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: true, now: 104, nextFullCheck: 110));
+    }
+
+    [Fact]
     public void Only_Package_Banks_spot_names_are_its_own()
     {
         Assert.True(FixtureSpots.IsOurs(CabinetSpot));

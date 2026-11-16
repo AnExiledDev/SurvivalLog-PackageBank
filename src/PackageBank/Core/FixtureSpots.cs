@@ -32,6 +32,11 @@ public static class FixtureSpots
     private const int FirstSpotType = 1;
     private const int LastSpotType = 7;
 
+    /// <summary>How often the spots are checked in full even when nothing they are drawn from seems to have changed.</summary>
+    public const float FullCheckSeconds = 10;
+
+    private const float OtherFloorPenalty = 1000;
+
     /// <summary>
     /// One spot per home fixture on a fixed point that the player can take down (Move and Remove) and whose package has a
     /// kind of build spot to go on. A fixture with no Remove (the basement entrance) is never taken down, and one with
@@ -77,7 +82,25 @@ public static class FixtureSpots
         bool isUninstalling)
     {
         var shown = new HashSet<string>();
+
+        Shown(spots, demolished, pointsOnMap, taken, isOn, isUninstalling, shown);
+
+        return shown;
+    }
+
+    /// <summary>The same, written into <paramref name="shown"/> (cleared first), so a check that runs often reuses one set.</summary>
+    public static void Shown(
+        IEnumerable<FixtureSpot> spots,
+        IReadOnlySet<int> demolished,
+        IReadOnlySet<string> pointsOnMap,
+        IReadOnlySet<string> taken,
+        bool isOn,
+        bool isUninstalling,
+        ISet<string> shown)
+    {
         var opens = isOn && !isUninstalling;
+
+        shown.Clear();
 
         foreach (var spot in spots)
         {
@@ -85,9 +108,27 @@ public static class FixtureSpots
 
             if (taken.Contains(spot.Name) || (opens && demolished.Contains(spot.FurnitureId))) shown.Add(spot.Name);
         }
-
-        return shown;
     }
+
+    /// <summary>
+    /// How well a game spot's box fits as the pattern for a new spot's box, lower is better, or null when it does not fit
+    /// at all. Only a box of the same kind of spot has the right size to click. The nearest one wins, and one on the same
+    /// floor wins over any on another floor (a home is far less than 1000 m across).
+    /// </summary>
+    public static float? TemplateScore(FixtureSpot spot, int type, int floor, float distance)
+    {
+        if (type != spot.Type) return null;
+
+        return distance + (floor == spot.Floor ? 0 : OtherFloorPenalty);
+    }
+
+    /// <summary>
+    /// Whether the once-a-second check does its full pass: when anything it watches changed (the map, the furniture list,
+    /// the taken-down fixtures, the settings, the box root), always during Uninstall prep (it packs pieces up as it goes),
+    /// and every <see cref="FullCheckSeconds"/> for what it cannot watch cheaply, such as a piece moved from one spot to another.
+    /// </summary>
+    public static bool IsFullCheckDue(bool isStampSame, bool isUninstalling, float now, float nextFullCheck) =>
+        !isStampSame || isUninstalling || now >= nextFullCheck;
 
     /// <summary>The floor a fixture's map point is on; the home's other maps (the ground floor, a neighbour's flat) are ground floors.</summary>
     public static int FloorOf(int mapPointId) => mapPointId is Basement or Upstairs ? mapPointId : GroundFloor;
