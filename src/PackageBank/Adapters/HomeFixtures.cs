@@ -85,7 +85,7 @@ internal sealed class HomeFixtures
         return user != null && config.Get_Config_MapPoint(user.MapConfigId)?.Type == PackRules.HomeMapType;
     }
 
-    private static List<FixtureRow> Rows(ConfigManager config, Il2CppSystem.Collections.Generic.Dictionary<int, Config_GuidanceFurniture> table)
+    public static List<FixtureRow> Rows(ConfigManager config, Il2CppSystem.Collections.Generic.Dictionary<int, Config_GuidanceFurniture> table)
     {
         var rows = new List<FixtureRow>();
 
@@ -111,7 +111,8 @@ internal sealed class HomeFixtures
                 furniture?.RemoveFunc is { Count: > 0 },
                 furniture?.SlotType ?? PackRules.NoSpotSlotType,
                 row.IsShow,
-                HasStartingItems(row)));
+                HasStartingItems(row),
+                row.PosPoint));
         }
 
         return rows;

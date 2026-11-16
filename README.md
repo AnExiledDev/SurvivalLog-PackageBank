@@ -9,6 +9,7 @@ A BepInEx mod for Survival Log. Store furniture packages from your yard in a ban
 - **Shelf cards:** a card for each shelf along the top shows how many packages are on it out of its limit, and turns red when the shelf is full. Click a card to show only that shelf in both lists. Click it again, or `Show all` at the bottom, to show everything.
 - **Bank from the yard:** click a package in your yard and its menu (Install, Return) gets a `Bank` entry that moves it straight into the bank.
 - **Pack up placed furniture:** click a piece of furniture in your home that the Layout screen lets you both move and remove, and its menu gets a `Pack up` entry. The piece turns back into its package, in its color. The package goes on a free package spot in the yard, or into the bank if the yard has no free spot and its shelf has room. The shop's Refund pays the current price for it, wherever it came from. A storage piece has to be empty first. While a piece can't come down (switched on, in use, a plant growing), the entry is greyed out and shows the game's reason. Story pieces can be packed up too, and their entry warns you that the story uses them. Set `PackUp` to `false` to remove the entry.
+- **Spots where house furniture stood:** some of the house's own furniture (cabinets, workbenches, the radio and more) doesn't stand on a build spot. Once one is packed up or removed, a build spot of its size opens where it stood, so its package or anything else that size can go back there. Set `SpotsWhereFixturesStood` to `false` to stop new ones opening. A spot with furniture on it stays.
 - **In the build shop:** every bought package in the shop's package list gets a `Bank` button next to its Refund button, and the banked packages are listed below the shop's list with their icons, each with `Take out`. You can move packages in and out of the bank while you shop.
 - **Size limits:** you set how many large, medium, small and defense packages (sandbags, spike barriers and the like) the bank holds, or turn the limits off. By default it holds 4 large, 6 medium, 8 small and 4 defense packages.
 - **Story Items:** free one-off packages, such as the Recorder from the hospital, go on a Story Items shelf with no limit.
@@ -47,7 +48,10 @@ Works in English and Chinese.
 
 ## Uninstall
 
-Delete `PackageBank.dll` from `BepInEx\plugins`. Take everything out of the bank first: packages still in the bank are lost once the mod is gone.
+1. Turn on `UninstallPrep` (under Uninstall) on the Mod Manager's Mods screen or in the cfg file.
+2. Load your save and go home. Every piece standing on a spot where house furniture stood is packed into a yard package, because the game without the mod has no spot there. `BepInEx\package-bank.log` lists each one, and any that couldn't be packed (empty a storage piece first).
+3. Take everything out of the bank. Packages still in the bank are lost once the mod is gone.
+4. Save, quit, and delete `PackageBank.dll` from `BepInEx\plugins`.
 
 ## Configuration
 
@@ -55,7 +59,7 @@ See [CONFIG.md](CONFIG.md). Each world can keep its own size limits. Pick them f
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.7.3 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.8.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

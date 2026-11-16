@@ -13,6 +13,7 @@ public sealed class BankTicker : MonoBehaviour
     private const int MaxReportedFailures = 20;
 
     internal static BankSession? Session;
+    internal static FixtureSpotsLive? Spots;
     internal static Action<string> Log = _ => { };
     private static readonly HashSet<string> ReportedFailures = new();
 
@@ -25,6 +26,15 @@ public sealed class BankTicker : MonoBehaviour
         try
         {
             Session?.Update();
+        }
+        catch (Exception ex)
+        {
+            ReportFailure(ex);
+        }
+
+        try
+        {
+            Spots?.Tick();
         }
         catch (Exception ex)
         {

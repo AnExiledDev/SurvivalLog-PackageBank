@@ -7,7 +7,8 @@ namespace PackageBank.Core;
 /// the Config_MapPoint row of MapPointId (null when there is none); HasMove and HasRemove are the furniture's MoveFunc
 /// and RemoveFunc being set, SlotType its Config_Furniture.SlotType. IsShown is the row's IsShow (the game sets a hidden
 /// row down unseen, until the story shows it); HasStartingItems is the row filling the piece's container when it is
-/// set down (ItemIdList, the per-player lists or PackageID).
+/// set down (ItemIdList, the per-player lists or PackageID). PosPoint is where a PosType 1 row stands: a point in the
+/// map's NodeMap.
 /// </summary>
 public sealed record FixtureRow(
     int FurnitureId,
@@ -22,7 +23,8 @@ public sealed record FixtureRow(
     bool HasRemove,
     int SlotType,
     bool IsShown = true,
-    bool HasStartingItems = false);
+    bool HasStartingItems = false,
+    string? PosPoint = null);
 
 /// <summary>A copy of a fixture that is not where the game put it: a placed piece, a yard package, or a bank entry.</summary>
 public abstract record FixtureCopy

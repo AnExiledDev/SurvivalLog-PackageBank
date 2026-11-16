@@ -266,6 +266,32 @@ internal sealed class GameBank : IBankGame
         }
     }
 
+    /// <summary>
+    /// For Uninstall prep: packs a piece into a yard package the way Pack up does, unless it still holds items or the
+    /// game will not take it down right now. Null once packed, else the reason it was not.
+    /// </summary>
+    public string? PackUpForUninstall(long id)
+    {
+        var game = LoadedGame();
+
+        if (game == null) return "no game loaded";
+
+        var (_, config, agents, _) = game.Value;
+        var furniture = PlacedFurniture(agents, id);
+
+        if (furniture == null) return "the piece was not found";
+
+        var configId = furniture.AgentConfigId;
+        var row = Row(config, configId);
+
+        if (row != null && HoldsItems(furniture, row)) return "it still holds items";
+        if (BlockOf(furniture) is { } block) return block.Length > 0 ? block : "the game will not take it down right now";
+
+        var piece = new PlacedPiece(id, configId, NameOf(config, configId), Size: null, furniture._DyeSlot_k__BackingField, HoldsItems: false, Block: null, IsStory: false);
+
+        return PackUp(piece) ? null : "no free spot in the yard, or it would not come down";
+    }
+
     /// <summary>The entry is written before the piece comes down, and taken back out only while the piece still stands.</summary>
     public bool PackUpIntoBank(PlacedPiece piece, BankEntry entry)
     {

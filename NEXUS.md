@@ -12,6 +12,7 @@ Your yard only has so many package spots. Package Bank gives you somewhere to pu
 [*][b]Shelf cards[/b]: a card for each shelf shows how full it is. Click one to show only that shelf in both lists.[/*]
 [*][b]Bank from the yard[/b]: click a package in your yard and its menu gets a [b]Bank[/b] entry beside Install and Return.[/*]
 [*][b]Pack up placed furniture[/b]: click a piece of furniture in your home that the Layout screen lets you both move and remove, and its menu gets a [b]Pack up[/b] entry. The piece turns back into its package, in its color. The package goes on a free package spot in the yard, or into the bank when the yard is full. The shop's Refund pays the current price for it. A storage piece has to be empty first, and when the game won't let a piece come down, the entry says why. Story pieces can be packed up too, with a warning.[/*]
+[*][b]Spots where house furniture stood[/b]: some of the house's own furniture (cabinets, workbenches, the radio and more) doesn't stand on a build spot. Once one is packed up or removed, a build spot of its size opens where it stood, so its package or anything else that size can go back there.[/*]
 [*][b]Bank from the build shop[/b]: every bought package in the shop's package list gets a [b]Bank[/b] button next to its Refund button.[/*]
 [*][b]Banked packages in the shop[/b]: the bank is listed below the shop's package list, each package with [b]Take out[/b].[/*]
 [*][b]Size limits[/b]: you set how many large, medium and small packages the bank holds, or turn the limits off. By default it holds 4 large, 6 medium and 8 small packages.[/*]
@@ -65,10 +66,15 @@ Works in English and Chinese.
 [/list]
 
 [size=5]Uninstall[/size]
-Take everything out of the bank first, then delete [font=Courier New]PackageBank.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder. Packages still in the bank are lost once the mod is gone.
+[list=1]
+[*]Turn on [b]UninstallPrep[/b] (under Uninstall) on the Mod Manager's Mods screen or in the cfg file.[/*]
+[*]Load your save and go home. Every piece standing on a spot where house furniture stood is packed into a yard package, because the game without the mod has no spot there. [font=Courier New]BepInEx\package-bank.log[/font] lists each one, and any that couldn't be packed (empty a storage piece first).[/*]
+[*]Take everything out of the bank. Packages still in the bank are lost once the mod is gone.[/*]
+[*]Save, quit, and delete [font=Courier New]PackageBank.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.[/*]
+[/list]
 
 [size=5]Configuration[/size]
-You can change the size limits, turn them off, or take Pack up out of the click menu (PackUp). Do it in game on the Mod Manager's Mods screen, or edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed. The cfg file explains each setting in English and Chinese, and [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url] lists them all. Each world can keep its own size limits. Pick them for a new world in Customizable Difficulty, or change them for the world you're playing on the Mods screen.
+You can change the size limits, turn them off, take Pack up out of the click menu (PackUp), or stop new spots opening where house furniture stood (SpotsWhereFixturesStood). Do it in game on the Mod Manager's Mods screen, or edit [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font] while the game is closed. The cfg file explains each setting in English and Chinese, and [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url] lists them all. Each world can keep its own size limits. Pick them for a new world in Customizable Difficulty, or change them for the world you're playing on the Mods screen.
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or post in this page's Posts tab. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\package-bank.log[/font].
@@ -88,6 +94,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [*][b]类别卡片[/b]：每个类别一张卡片，显示已存了多少。点击卡片后，两边的列表只显示这一类。[/*]
 [*][b]在屋外空地上存入[/b]：点击屋外空地上的包裹，弹出的菜单中会多出[b]存入[/b]选项。[/*]
 [*][b]把摆好的家具打包[/b]：点击家中一件在「布局」界面里既能「移动」又能「移除」的家具，弹出的菜单中会多出[b]打包[/b]选项。家具会变回包裹，保留颜色，放在屋外空地上空的包裹位上，屋外空地满了就存入仓库。商店的退货按钮会按当前价格退款。储物家具要先清空。游戏不允许拆下某件家具时，选项会说明原因。剧情家具也可以打包，但会有提醒。[/*]
+[*][b]房子原有家具的位置[/b]：房子自带的部分家具（柜子、工作台、收音机等）不在建造位上。打包或拆除后，原位置会出现一个同尺寸的建造位，可以把它的包裹或其他同尺寸家具放回去。[/*]
 [*][b]在建造商店存入[/b]：商店包裹列表中每个已购买的包裹旁，退货按钮边上多了一个[b]存入[/b]按钮。[/*]
 [*][b]商店里显示仓库[/b]：仓库中的包裹列在商店包裹列表下方，每个都有[b]取出[/b]按钮。[/*]
 [*][b]尺寸上限[/b]：大型、中型和小型包裹各能存多少由你设置，也可以关闭上限。默认可存 4 个大型、6 个中型和 8 个小型包裹。[/*]
@@ -138,10 +145,15 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-PackageBa
 [/list]
 
 [size=5]卸载[/size]
-从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]PackageBank.dll[/font]。卸载前请先把仓库里的包裹全部取出，模组删除后仓库中的包裹会丢失。
+[list=1]
+[*]在 Mod Manager 的「模组」界面或配置文件中打开 [b]UninstallPrep[/b]（在 Uninstall 分类下）。[/*]
+[*]读取存档并回家。所有放在房子原有家具位置建造位上的家具都会打包成屋外空地上的包裹，因为没有此模组时游戏里没有这些建造位。[font=Courier New]BepInEx\package-bank.log[/font] 会列出每一件，以及无法打包的家具（储物家具要先清空）。[/*]
+[*]把仓库里的包裹全部取出。模组删除后仓库中的包裹会丢失。[/*]
+[*]存档、退出游戏，再从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]PackageBank.dll[/font]。[/*]
+[/list]
 
 [size=5]配置[/size]
-可以修改各尺寸的上限、关闭上限，或把「打包」从点击菜单中去掉（PackUp）。可以在游戏内 Mod Manager 的「模组」界面修改，也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整列表见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。每个存档都可以有自己的尺寸上限：新存档可以在「自定义难度」里选，游戏中也可以在「模组」界面只为当前存档修改。
+可以修改各尺寸的上限、关闭上限，把「打包」从点击菜单中去掉（PackUp），或不再在房子原有家具的位置出现新的建造位（SpotsWhereFixturesStood）。可以在游戏内 Mod Manager 的「模组」界面修改，也可以在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.packagebank.cfg[/font]。配置文件中每项设置都有中文说明，完整列表见 [url=https://github.com/AnExiledDev/SurvivalLog-PackageBank/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。每个存档都可以有自己的尺寸上限：新存档可以在「自定义难度」里选，游戏中也可以在「模组」界面只为当前存档修改。
 
 [size=5]反馈[/size]
 发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\package-bank.log[/font]。

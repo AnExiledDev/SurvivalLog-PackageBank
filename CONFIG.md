@@ -19,6 +19,13 @@ Story Items have no limit. If you lower a limit below what's already banked, tho
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `PackUp` | `true` | Adds `Pack up` to the click menu on placed furniture. Set it to `false` to remove the entry. The change applies right away, even to a click menu that's already open. |
+| `SpotsWhereFixturesStood` | `true` | Some of the house's own furniture stands on no build spot. Once one is packed up or removed, a build spot of its size opens where it stood. Set it to `false` to stop new ones opening. A spot with furniture on it stays. The change applies right away. |
+
+## Uninstall
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `UninstallPrep` | `false` | Turn it on before you remove the mod, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package. The README's Uninstall section has all the steps. |
 
 ## Interface
 

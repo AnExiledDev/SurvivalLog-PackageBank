@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Fixed: some of the house's own furniture (cabinets, workbenches, the radio and more) doesn't stand on a build spot. Once you packed one up or removed it, nothing could go where it stood again, not even that piece. Now a build spot of its size opens there, so its package or anything else that size can go back. Setting `SpotsWhereFixturesStood`, on by default.
+- New setting `UninstallPrep` under Uninstall, off by default. Turn it on before you remove the mod: it packs up every piece standing on one of those spots, since the game without the mod has no spot there. The README's Uninstall section has the steps.
+- Works with Survival Log 1.1.20719 and 1.1.21271.
+
 ## 0.7.3
 
 - Clearer wording on screen and on the Mods screen.
