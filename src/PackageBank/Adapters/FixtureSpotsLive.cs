@@ -16,7 +16,8 @@ namespace PackageBank.Adapters;
 /// can change the spots: a load or a trip (both run the game's load), a piece packed up or removed, or a settings change.
 /// At home, each spot that should show gets its points on the map (the fixture's point, and a stand point copied from the
 /// nearest game spot of its type) and a clickable box copied from that spot's box; a spot that should no longer show loses
-/// both. While Uninstall prep is on, every piece on one of these spots is packed into a yard package. A pass that comes
+/// both. While Uninstall prep is on, every piece on one of these spots is packed into a yard package, and then the house
+/// furniture the game has no package for goes back where it stood (GameBank.SetDownBoxed). A pass that comes
 /// too early in a load tries again once a second until it is done (<see cref="FixtureSpots.IsPassDone"/>); otherwise
 /// nothing runs.
 /// </summary>
@@ -26,6 +27,8 @@ internal sealed class FixtureSpotsLive
     private const string SpotRootName = "BuildingPos";
 
     private readonly Func<long, string?> _packUp;
+    private readonly Action<IReadOnlySet<int>> _setDownBoxed;
+    private readonly Action _forgetKept;
     private readonly Action<string> _log;
     private readonly HashSet<string> _reported = new();
     private readonly HashSet<long> _refused = new();
@@ -49,9 +52,11 @@ internal sealed class FixtureSpotsLive
     private volatile int _settingsVersion;
     private int _usedVersion;
 
-    public FixtureSpotsLive(Func<long, string?> packUp, Action<string> log)
+    public FixtureSpotsLive(Func<long, string?> packUp, Action<IReadOnlySet<int>> setDownBoxed, Action forgetKept, Action<string> log)
     {
         _packUp = packUp;
+        _setDownBoxed = setDownBoxed;
+        _forgetKept = forgetKept;
         _log = log;
     }
 
@@ -87,6 +92,7 @@ internal sealed class FixtureSpotsLive
         {
             _usedVersion = _settingsVersion;
             _refused.Clear();
+            _forgetKept();
         }
 
         try
@@ -197,7 +203,12 @@ internal sealed class FixtureSpotsLive
 
         ReadTaken(agents);
 
-        if (_isUninstalling) PackUp();
+        if (_isUninstalling)
+        {
+            PackUp();
+            ReadTaken(agents);
+            _setDownBoxed(FixturesUnderTakenSpots());
+        }
 
         ReadDemolished(build);
         ReadPointsOnMap(map);
@@ -248,6 +259,19 @@ internal sealed class FixtureSpotsLive
             _taken[spot] = furniture.InstanceId;
             _takenNames.Add(spot);
         }
+    }
+
+    /// <summary>The fixtures whose own point a piece still stands on (one Uninstall prep could not pack), so none is set down under it.</summary>
+    private HashSet<int> FixturesUnderTakenSpots()
+    {
+        var fixtures = new HashSet<int>();
+
+        foreach (var spot in _spots)
+        {
+            if (_takenNames.Contains(spot.Name)) fixtures.Add(spot.FurnitureId);
+        }
+
+        return fixtures;
     }
 
     /// <summary>A piece the game will not let go is logged once and tried again only after a settings change.</summary>

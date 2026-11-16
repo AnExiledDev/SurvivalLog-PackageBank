@@ -24,6 +24,7 @@ internal sealed class GameBank : IBankGame
     private readonly Action<string> _log;
     private readonly GameShop _shop;
     private readonly HomeFixtures _fixtures;
+    private readonly PackageBoxes _boxes;
     private readonly HashSet<string> _reportedFailures = new();
     private readonly KeyedMemo<(IntPtr Config, bool IsChinese, bool HasIcons), FurnitureInfo> _furniture;
     private readonly Task<(IconIndex Icons, string Note)> _iconScan;
@@ -50,6 +51,7 @@ internal sealed class GameBank : IBankGame
         _shop = shop;
         _log = log;
         _fixtures = new HomeFixtures(log);
+        _boxes = new PackageBoxes(log);
         _furniture = new KeyedMemo<(IntPtr, bool, bool), FurnitureInfo>(Describe);
         _iconScan = WebIcons.StartScan();
     }
@@ -163,20 +165,23 @@ internal sealed class GameBank : IBankGame
             var game = LoadedGame();
             var counters = Counters();
 
-            if (game == null || counters == null) return 0;
+            if (game == null) return NotTakenOut(entry, "no game is loaded");
+            if (counters == null) return NotTakenOut(entry, "the bank's save record was not found");
 
             var (_, config, agents, role) = game.Value;
             var build = AgentTools.GetAgentComponent<BuildComponent>(role);
 
-            if (build == null) return 0;
+            if (build == null) return NotTakenOut(entry, "the player's build component was not found");
 
             build.ReconcilePackagePoints(TakeOutReason);
 
-            if (build.GetFreePackagePointCount() <= 0) return 0;
+            if (build.GetFreePackagePointCount() <= 0) return NotTakenOut(entry, "the yard has no free spot");
+
+            _boxes.Ensure(config);
 
             var id = build.CreateBagFurniture(entry.ConfigId, PositionOf(role), false, 0);
 
-            if (id == 0) return 0;
+            if (id == 0) return NotTakenOut(entry, "the game made no package for it (it may have no package model)");
 
             ClearEntry(counters, entry.Slot);
             _log($"took slot {entry.Slot} (furniture {entry.ConfigId}) out as package {id}");
@@ -220,7 +225,7 @@ internal sealed class GameBank : IBankGame
     /// Makes the package first, on the free yard spot nearest the player as Take out does, then takes the piece down the
     /// way the pawn shop does (power, story and tray clean-up, no materials back). A piece that will not come down takes
     /// its new package with it, so a failure can neither lose the piece nor copy it. The package is then marked as bought
-    /// at an unknown price, which the game's Refund pays at the shop's price.
+    /// at the piece's refund price (PackageModels.RefundPaid), which the game's Refund pays.
     /// </summary>
     public bool PackUp(PlacedPiece piece)
     {
@@ -228,21 +233,24 @@ internal sealed class GameBank : IBankGame
         {
             var game = LoadedGame();
 
-            if (game == null) return false;
+            if (game == null) return Refused(piece, "no game is loaded");
 
-            var (_, _, agents, role) = game.Value;
+            var (_, config, agents, role) = game.Value;
             var build = AgentTools.GetAgentComponent<BuildComponent>(role);
             var furniture = PlacedFurniture(agents, piece.Id);
 
-            if (build == null || furniture == null) return false;
+            if (build == null) return Refused(piece, "the player's build component was not found");
+            if (furniture == null) return Refused(piece, "it is no longer standing");
 
             build.ReconcilePackagePoints(TakeOutReason);
 
-            if (build.GetFreePackagePointCount() <= 0) return false;
+            if (build.GetFreePackagePointCount() <= 0) return Refused(piece, "the yard has no free spot");
+
+            _boxes.Ensure(config);
 
             var id = build.CreateBagFurniture(piece.ConfigId, PositionOf(role), false, 0);
 
-            if (id == 0) return false;
+            if (id == 0) return Refused(piece, "the game made no package for it (it may have no package model)");
 
             if (!TakeDown(agents, furniture, piece))
             {
@@ -252,7 +260,7 @@ internal sealed class GameBank : IBankGame
             }
 
             _log($"packed up {piece.Name} (furniture {piece.ConfigId}, piece {piece.Id}) as package {id}");
-            Step("mark the package refundable", () => build.AddPurchased(id, 0, PackRun.PaidUnknown));
+            Step("mark the package refundable", () => build.AddPurchased(id, 0, piece.Paid));
             Step("give back the color", () => Dye(agents, id, piece.Dye));
             AfterPackUp(build, piece);
 
@@ -287,7 +295,7 @@ internal sealed class GameBank : IBankGame
         if (row != null && HoldsItems(furniture, row)) return "it still holds items";
         if (BlockOf(furniture) is { } block) return block.Length > 0 ? block : "the game will not take it down right now";
 
-        var piece = new PlacedPiece(id, configId, NameOf(config, configId), Size: null, furniture._DyeSlot_k__BackingField, HoldsItems: false, Block: null, IsStory: false);
+        var piece = new PlacedPiece(id, configId, NameOf(config, configId), Size: null, furniture._DyeSlot_k__BackingField, HoldsItems: false, Block: null, IsStory: false, Paid: RefundPaid(row));
 
         return PackUp(piece) ? null : "no free spot in the yard, or it would not come down";
     }
@@ -300,13 +308,15 @@ internal sealed class GameBank : IBankGame
             var game = LoadedGame();
             var counters = Counters();
 
-            if (game == null || counters == null) return false;
+            if (game == null) return Refused(piece, "no game is loaded");
+            if (counters == null) return Refused(piece, "the bank's save record was not found");
 
             var (_, _, agents, role) = game.Value;
             var build = AgentTools.GetAgentComponent<BuildComponent>(role);
             var furniture = PlacedFurniture(agents, piece.Id);
 
-            if (build == null || furniture == null) return false;
+            if (build == null) return Refused(piece, "the player's build component was not found");
+            if (furniture == null) return Refused(piece, "it is no longer standing");
 
             WriteEntry(counters, entry);
 
@@ -352,6 +362,22 @@ internal sealed class GameBank : IBankGame
         if (!isGone) _log($"{piece.Name} (piece {piece.Id}) did not come down, so nothing was packed");
 
         return isGone;
+    }
+
+    /// <summary>Why Take out left an entry in the bank. Logged every time, like Refused.</summary>
+    private long NotTakenOut(BankEntry entry, string reason)
+    {
+        _log($"could not take slot {entry.Slot} (furniture {entry.ConfigId}) out: {reason}");
+
+        return 0;
+    }
+
+    /// <summary>Why Pack up left a piece standing. Logged every time: it is rare, and the toast points the player here.</summary>
+    private bool Refused(PlacedPiece piece, string reason)
+    {
+        _log($"could not pack up {piece.Name} (furniture {piece.ConfigId}, piece {piece.Id}): {reason}");
+
+        return false;
     }
 
     /// <summary>A failed undo leaves the piece standing and its package too, so it is logged every time, not once.</summary>
@@ -466,6 +492,50 @@ internal sealed class GameBank : IBankGame
             ReportOnce("set the home's fixtures down again", ex);
         }
     }
+
+    /// <summary>Before a save loads: the pieces with no package in the game get their box, so a saved package of one shows.</summary>
+    public void BeforeLoad()
+    {
+        try
+        {
+            if (GameSingleton.Existing<ConfigManager>() is { } config) _boxes.Ensure(config);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("give the pieces with no package a box", ex);
+        }
+    }
+
+    /// <summary>
+    /// For Uninstall prep, from the spots pass at home: the boxed pieces in a yard package or the bank go back where they
+    /// stood. Blocked are those whose place a piece still stands on.
+    /// </summary>
+    public void SetDownBoxed(IReadOnlySet<int> blocked)
+    {
+        try
+        {
+            var game = LoadedGame();
+            var counters = Counters();
+
+            if (game == null || counters == null) return;
+
+            var (_, config, agents, role) = game.Value;
+            var build = AgentTools.GetAgentComponent<BuildComponent>(role);
+
+            if (build == null || !HomeFixtures.IsAtHome(config, role)) return;
+
+            _boxes.Ensure(config);
+
+            if (_fixtures.SetDownBoxed(config, agents, build, Contents(counters).Entries, slot => ClearEntry(counters, slot), id => NameOf(config, id), _boxes.Boxed, blocked) == true) _shop.Recount(build);
+        }
+        catch (Exception ex)
+        {
+            ReportOnce("set the boxed pieces down for Uninstall prep", ex);
+        }
+    }
+
+    /// <summary>After a settings change, Uninstall prep logs again the pieces it could not set down.</summary>
+    public void ForgetKept() => _fixtures.ResetKept();
 
     /// <summary>
     /// Cheat Menu's repair button: the same check as on load, run now, at home only. Says what it set down again, or
@@ -642,7 +712,7 @@ internal sealed class GameBank : IBankGame
         var info = Info(config, scope, configId);
         var isStory = StoryFurniture(config).Contains(configId) || furniture._IsGuidanceFurniture_k__BackingField || furniture.IsSoleMainEventAnchor(configId);
 
-        return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory, IsInLayout());
+        return new PlacedPiece(id, configId, info.Name, info.Size, furniture._DyeSlot_k__BackingField, HoldsItems(furniture, row), BlockOf(furniture), isStory, IsInLayout(), RefundPaid(row));
     }
 
     /// <summary>
@@ -836,6 +906,8 @@ internal sealed class GameBank : IBankGame
 
         return table != null && table.TryGetValue(configId, out var row) ? row : null;
     }
+
+    private static int RefundPaid(Config_Furniture? row) => row == null ? PackRun.PaidUnknown : PackageModels.RefundPaid(row.FurniturePrice, row.PawnPrice);
 
     private static string NameOf(ConfigManager config, int configId)
     {

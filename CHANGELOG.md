@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3
+
+- Fixed: Pack up failed on some house furniture, like the office clutter, the printer, the pallet jack and the wooden crate in the Warehouse Manager's home. The game has no package for these pieces, so the mod now gives each one a wooden box of its size, and Pack up works on them.
+- Furniture with no shop price is refunded at what the pawn shop pays for it.
+- `UninstallPrep` now also puts these pieces back where they stood when they're in a yard package or the bank, since without the mod their packages are invisible. The log lists any it can't put back, for you to place yourself.
+- When Pack up or Take out can't finish, the log now says why.
+
 ## 0.8.2
 
 - The spots where house furniture stood no longer check anything on a timer. They update only when you load a save, come home from a trip, pack up or remove furniture, or change a setting.

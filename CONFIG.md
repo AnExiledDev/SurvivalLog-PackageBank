@@ -25,7 +25,7 @@ Story Items have no limit. If you lower a limit below what's already banked, tho
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `UninstallPrep` | `false` | Turn it on before you remove the mod, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package. The README's Uninstall section has all the steps. |
+| `UninstallPrep` | `false` | Turn it on before you remove the mod, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package, and house furniture the game has no package for goes back where it stood. The README's Uninstall section has all the steps. |
 
 ## Interface
 

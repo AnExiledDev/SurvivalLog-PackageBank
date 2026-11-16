@@ -83,9 +83,9 @@ internal sealed class FakeGame : IBankGame
     }
 
     /// <summary>A placed piece of furniture with the click menu open on it.</summary>
-    public PlacedPiece OpenMenuOnPiece(int configId, int dye = 0, bool holdsItems = false, string? block = null, bool isStory = false, bool isInLayout = false)
+    public PlacedPiece OpenMenuOnPiece(int configId, int dye = 0, bool holdsItems = false, string? block = null, bool isStory = false, bool isInLayout = false, int paid = PackRun.PaidUnknown)
     {
-        var piece = new PlacedPiece(_nextId++, configId, NameOf(configId), SizeOf(configId), dye, holdsItems, block, isStory, isInLayout);
+        var piece = new PlacedPiece(_nextId++, configId, NameOf(configId), SizeOf(configId), dye, holdsItems, block, isStory, isInLayout, paid);
 
         Piece = piece;
         Menu = piece.Id;
@@ -167,7 +167,7 @@ internal sealed class FakeGame : IBankGame
     {
         if (IsPackUpBroken) return false;
 
-        Home.Add(new HomePackage(_nextId++, piece.ConfigId, NameOf(piece.ConfigId), null, SizeOf(piece.ConfigId), false, true, PackRun.PaidUnknown, 0, piece.Dye));
+        Home.Add(new HomePackage(_nextId++, piece.ConfigId, NameOf(piece.ConfigId), null, SizeOf(piece.ConfigId), false, true, piece.Paid, 0, piece.Dye));
         FreeSpots--;
         TakeDown(piece);
 

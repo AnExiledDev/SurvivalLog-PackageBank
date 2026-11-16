@@ -49,7 +49,7 @@ Works in English and Chinese.
 ## Uninstall
 
 1. Turn on `UninstallPrep` (under Uninstall) on the Mod Manager's Mods screen or in the cfg file.
-2. Load your save and go home. Every piece standing on a spot where house furniture stood is packed into a yard package, because the game without the mod has no spot there. `BepInEx\package-bank.log` lists each one, and any that couldn't be packed (empty a storage piece first).
+2. Load your save and go home. Every piece standing on a spot where house furniture stood is packed into a yard package, because the game without the mod has no spot there. `BepInEx\package-bank.log` lists each one, and any that couldn't be packed (empty a storage piece first). House furniture the game has no package for (the office clutter in the Warehouse Manager's home, for one) goes back where it stood, from the yard or the bank. The log also lists any of those that can't go back (its spot is taken, say). Place those yourself.
 3. Take everything out of the bank. Packages still in the bank are lost once the mod is gone.
 4. Save, quit, and delete `PackageBank.dll` from `BepInEx\plugins`.
 
@@ -59,7 +59,7 @@ See [CONFIG.md](CONFIG.md). Each world can keep its own size limits. Pick them f
 
 ## Troubleshooting
 
-The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.8.0 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
+The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package Bank 0.8.3 started` when the game starts. If the HUD button never shows, check that line and look for errors in `BepInEx\LogOutput.log`.
 
 ## Feedback
 

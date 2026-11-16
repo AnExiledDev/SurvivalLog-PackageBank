@@ -20,7 +20,7 @@ public readonly record struct ShopRow(int Index, int ConfigId, int Paid);
 /// it. Block is the game's reason it cannot be taken down right now (in use, switched on, a plant growing), null
 /// when it can. IsStory is a piece the story uses. IsInLayout: the game's Layout screen is open, where a yard package cannot be clicked.
 /// </summary>
-public sealed record PlacedPiece(long Id, int ConfigId, string Name, PackageSize? Size, int Dye, bool HoldsItems, string? Block, bool IsStory, bool IsInLayout = false);
+public sealed record PlacedPiece(long Id, int ConfigId, string Name, PackageSize? Size, int Dye, bool HoldsItems, string? Block, bool IsStory, bool IsInLayout = false, int Paid = PackRun.PaidUnknown);
 
 /// <summary>
 /// The bank and the home's packages, read in one go. FreeSpots is how many yard spots are empty. Shop is the build

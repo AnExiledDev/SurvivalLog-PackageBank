@@ -18,6 +18,7 @@ namespace PackageBank.Adapters;
 internal sealed class HomeFixtures
 {
     private readonly Action<string> _log;
+    private readonly HashSet<string> _kept = new();
     private IntPtr _checked;
 
     public HomeFixtures(Action<string> log) => _log = log;
@@ -64,7 +65,7 @@ internal sealed class HomeFixtures
         var chapter = save.InitChapterId;
         var character = ConfigManager.GetCurrentPlayerSelectId();
         var rows = Rows(config, table);
-        var lost = FixtureRepair.Find(rows, chapter, character, Copies(config, agents, build, banked, rows));
+        var lost = FixtureRepair.Find(rows, chapter, character, Copies(config, agents, build, banked, OldPackUpFixtures(rows)));
         var setDown = new List<string>();
         var kept = new List<string>();
 
@@ -76,6 +77,75 @@ internal sealed class HomeFixtures
         }
 
         return new Outcome(setDown, kept);
+    }
+
+    /// <summary>
+    /// Uninstall prep for the pieces Pack up gave a box (PackageModels): each one in a yard package or the bank goes back
+    /// where the game set it down, unless its spot is in use. A piece that cannot go back is logged once until Reset, for
+    /// the player to place. True when something was set down, so the shop's counts change. Null when the save or the
+    /// game's table is not there yet.
+    /// </summary>
+    public bool? SetDownBoxed(
+        ConfigManager config,
+        AgentManager agents,
+        BuildComponent build,
+        IReadOnlyList<BankEntry> banked,
+        Action<int> clearEntry,
+        Func<int, string> nameOf,
+        IReadOnlySet<int> boxed,
+        IReadOnlySet<int> blocked)
+    {
+        var save = GameSingleton.Existing<GameSaveManager>()?.gameSave;
+        var table = config._Config_GuidanceFurniture_Dict;
+
+        if (save == null || table == null) return null;
+        if (boxed.Count == 0) return false;
+
+        var chapter = save.InitChapterId;
+        var character = ConfigManager.GetCurrentPlayerSelectId();
+        var rows = Rows(config, table);
+        var plan = FixtureRepair.FindBoxed(rows, chapter, character, Copies(config, agents, build, banked, boxed), boxed, blocked);
+        var isSetDown = false;
+
+        foreach (var piece in plan.SetDown)
+        {
+            if (SetDown(agents, build, table, chapter, character, piece, clearEntry, TakenSpots(agents))) isSetDown = true;
+            else Kept(piece, nameOf);
+        }
+
+        foreach (var piece in plan.Kept) Kept(piece, nameOf);
+
+        return isSetDown;
+    }
+
+    /// <summary>Lets Uninstall prep log again the pieces it could not set down, after a settings change.</summary>
+    public void ResetKept() => _kept.Clear();
+
+    private void Kept(LostFixture piece, Func<int, string> nameOf)
+    {
+        var where = piece.Copy is FixtureCopy.Banked banked ? $"in bank slot {banked.Slot}" : "in a yard package";
+
+        if (_kept.Add($"{piece.FurnitureId} {piece.Copy}")) _log($"Uninstall prep: {nameOf(piece.FurnitureId)} (furniture {piece.FurnitureId}) {where} could not go back where it stood. Take it out and place it yourself before you remove PackageBank.dll, since without the mod its package is invisible.");
+    }
+
+    /// <summary>The build spots pieces stand on now, as the game's StartBattle passes them, so a piece is not set down on a spot in use.</summary>
+    private static Il2CppSystem.Collections.Generic.HashSet<string> TakenSpots(AgentManager agents)
+    {
+        var taken = new Il2CppSystem.Collections.Generic.HashSet<string>();
+        var furnitures = agents.GetAllFurnitures();
+
+        for (var i = 0; furnitures != null && i < furnitures.Count; i++)
+        {
+            var furniture = furnitures[i];
+
+            if (furniture == null || furniture.IsDead) continue;
+
+            var name = AgentTools.GetAgentComponent<SlotComponent>(furniture)?._SlotName_k__BackingField;
+
+            if (!string.IsNullOrEmpty(name)) taken.Add(name);
+        }
+
+        return taken;
     }
 
     public static bool IsAtHome(ConfigManager config, LeadingRole role)
@@ -126,7 +196,7 @@ internal sealed class HomeFixtures
         || row.ItemIdList_P3 is { Count: > 0 }
         || row.ItemIdList_P4 is { Count: > 0 };
 
-    private static HomeCopies Copies(ConfigManager config, AgentManager agents, BuildComponent build, IReadOnlyList<BankEntry> banked, List<FixtureRow> rows)
+    private static HashSet<int> OldPackUpFixtures(List<FixtureRow> rows)
     {
         var fixtures = new HashSet<int>();
 
@@ -135,6 +205,11 @@ internal sealed class HomeFixtures
             if (FixtureRepair.IsTakenByOldPackUp(row)) fixtures.Add(row.FurnitureId);
         }
 
+        return fixtures;
+    }
+
+    private static HomeCopies Copies(ConfigManager config, AgentManager agents, BuildComponent build, IReadOnlyList<BankEntry> banked, IReadOnlySet<int> fixtures)
+    {
         var standing = new HashSet<int>();
         var placed = new List<(long, int)>();
         var furnitures = agents.GetAllFurnitures();
@@ -187,7 +262,8 @@ internal sealed class HomeFixtures
         int chapter,
         int character,
         LostFixture fixture,
-        Action<int> clearEntry)
+        Action<int> clearEntry,
+        Il2CppSystem.Collections.Generic.HashSet<string>? takenSpots = null)
     {
         var id = fixture.FurnitureId;
         var record = build.GetDemolishedGuidanceIds();
@@ -202,7 +278,7 @@ internal sealed class HomeFixtures
 
         try
         {
-            agents.LoadFurnitureFromGuidance(chapter, character, others, null);
+            agents.LoadFurnitureFromGuidance(chapter, character, others, takenSpots);
         }
         catch (Exception ex)
         {
@@ -221,7 +297,7 @@ internal sealed class HomeFixtures
             return false;
         }
 
-        _log($"furniture {id} was packed up by an older version; it stands where the game puts it again");
+        _log(takenSpots == null ? $"furniture {id} was packed up by an older version; it stands where the game puts it again" : $"Uninstall prep: furniture {id} stands where it stood before it was packed up");
         TakeAway(agents, build, id, fixture.Copy, clearEntry);
 
         return true;

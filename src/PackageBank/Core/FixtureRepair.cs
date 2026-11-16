@@ -56,6 +56,9 @@ public sealed record HomeCopies(
 /// <summary>A home fixture to set down again where the game puts it, and the copy to take away once it stands (null when there is none).</summary>
 public sealed record LostFixture(int FurnitureId, FixtureCopy? Copy);
 
+/// <summary>What Uninstall prep does with boxed pieces: those it sets down where they stood, and those the player has to place.</summary>
+public sealed record UninstallPlan(IReadOnlyList<LostFixture> SetDown, IReadOnlyList<LostFixture> Kept);
+
 /// <summary>
 /// Pack up before 0.7.1 also took the basement entrance, which the game never lets the player take down, and fixtures
 /// that stand on no build spot (the ladders between floors, some lamps, workbenches and the like); none of them can go
@@ -90,6 +93,49 @@ public static class FixtureRepair
         }
 
         return lost;
+    }
+
+    /// <summary>
+    /// For Uninstall prep: pieces of house furniture that Pack up gave a box (see PackageModels), now in a yard
+    /// package or the bank. Without the mod such a package is invisible, so each goes back where the game set
+    /// the piece down for this save, one copy per piece that no longer stands there. Blocked are pieces whose place is
+    /// taken right now (a piece on the spot where house furniture stood). Every other copy is kept, for the player to place.
+    /// Pieces already placed elsewhere are fine without the mod and are left alone.
+    /// </summary>
+    public static UninstallPlan FindBoxed(IEnumerable<FixtureRow> rows, int chapterId, int playerSelectId, HomeCopies home, IReadOnlySet<int> boxed, IReadOnlySet<int> blocked)
+    {
+        var copies = new List<(int ConfigId, FixtureCopy Copy)>();
+
+        foreach (var package in home.Packages)
+        {
+            if (boxed.Contains(package.ConfigId)) copies.Add((package.ConfigId, new FixtureCopy.Package(package.Id)));
+        }
+
+        foreach (var entry in home.Banked)
+        {
+            if (boxed.Contains(entry.ConfigId)) copies.Add((entry.ConfigId, new FixtureCopy.Banked(entry.Slot)));
+        }
+
+        var places = new HashSet<int>();
+
+        foreach (var row in rows)
+        {
+            if (!boxed.Contains(row.FurnitureId) || row.MapType is not (null or PackRules.HomeMapType)) continue;
+            if (!CanSetDownAgain(row) || !IsLoaded(row, chapterId, playerSelectId)) continue;
+            if (home.Standing.Contains(row.FurnitureId) || blocked.Contains(row.FurnitureId)) continue;
+
+            places.Add(row.FurnitureId);
+        }
+
+        var setDown = new List<LostFixture>();
+        var kept = new List<LostFixture>();
+
+        foreach (var (configId, copy) in copies)
+        {
+            (places.Remove(configId) ? setDown : kept).Add(new LostFixture(configId, copy));
+        }
+
+        return new UninstallPlan(setDown, kept);
     }
 
     /// <summary>

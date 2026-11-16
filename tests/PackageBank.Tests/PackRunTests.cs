@@ -41,6 +41,22 @@ public class PackRunTests
     }
 
     [Fact]
+    public void House_furniture_with_no_shop_price_refunds_its_pawn_price_from_the_yard_and_from_the_bank()
+    {
+        var game = new FakeGame();
+        game.OpenMenuOnPiece(Bed, paid: 25);
+
+        PackRun.PackMenu(game, Defaults);
+        game.FreeSpots = 0;
+        game.OpenMenuOnPiece(Table, paid: 10);
+        PackRun.PackMenu(game, Defaults);
+        game.FreeSpots = 1;
+        BankRun.TakeOut(game, BankOf(game).Banked[0].Entry.Slot);
+
+        Assert.Equal(new[] { (Bed, 25), (Table, 10) }, game.Home.Select(package => (package.ConfigId, package.Paid)).ToArray());
+    }
+
+    [Fact]
     public void A_storage_piece_that_still_holds_items_is_refused_and_stays_where_it_is()
     {
         var game = new FakeGame();

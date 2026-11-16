@@ -19,7 +19,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.8.2";
+    private const string Version = "0.8.3";
 
     /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
@@ -66,16 +66,20 @@ public sealed class Plugin : BasePlugin
             "Some of the house's own furniture (cabinets, workbenches, the radio) stands on no build spot, so once one is packed up or removed, nothing can go where it stood. Set to true to open a build spot of its size there, so it or anything else that size can go back. Turning it off again opens no new ones; a spot with furniture on it stays.\n" +
             "房子自带的部分家具（柜子、工作台、收音机）不在建造位上，打包或拆除后，原位置就放不了任何东西。设为 true 则在原位置出现一个同尺寸的建造位，可以把它或其他同尺寸家具放回去。之后再关闭则不再出现新的建造位；已放了家具的建造位会保留。"));
         var uninstallPrep = Config.Bind("Uninstall", "UninstallPrep", false, new ConfigDescription(
-            "Turn this on before you remove Package Bank, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package, since the game without the mod has no such spot. Then take everything out of the bank, save, quit, and remove PackageBank.dll. package-bank.log lists every piece, and any that could not be packed (one that still holds items, say).\n" +
-            "移除 Package Bank 之前请先打开此项，然后在家中读取存档。所有放在房子原有家具位置建造位上的家具都会打包成屋外空地上的包裹，因为没有此模组时游戏里没有这些建造位。然后把仓库里的东西全部取出，存档、退出游戏，再删除 PackageBank.dll。package-bank.log 会列出每件家具，以及无法打包的家具（比如里面还有物品）。"));
+            "Turn this on before you remove Package Bank, then load your save at home. Every piece standing on a spot where house furniture stood is packed into a yard package, since the game without the mod has no such spot. House furniture the game has no package for (the office clutter in the Warehouse Manager's home, for one) goes back where it stood, from the yard or the bank. Then take everything out of the bank, save, quit, and remove PackageBank.dll. package-bank.log lists every piece, and any that could not be packed or put back (one that still holds items, say).\n" +
+            "移除 Package Bank 之前请先打开此项，然后在家中读取存档。所有放在房子原有家具位置建造位上的家具都会打包成屋外空地上的包裹，因为没有此模组时游戏里没有这些建造位。游戏中没有包裹的房子原有家具（比如仓库管理员家里的办公杂物）会从屋外空地或仓库放回原处。然后把仓库里的东西全部取出，存档、退出游戏，再删除 PackageBank.dll。package-bank.log 会列出每件家具，以及无法打包或放回的家具（比如里面还有物品）。"));
         var log = new ModLog(Log, LogFileName);
         var hooks = new PatchKit(new Harmony(Guid), log.Write);
         var bank = new GameBank(new GameShop(log.Write), log.Write);
         var session = new BankSession(bank, new BankPage(log.Write), log.Write);
 
-        var spots = new FixtureSpotsLive(bank.PackUpForUninstall, log.Write);
+        var spots = new FixtureSpotsLive(bank.PackUpForUninstall, bank.SetDownBoxed, bank.ForgetKept, log.Write);
 
-        LoadRows.Apply(hooks, spots.BeforeLoad);
+        LoadRows.Apply(hooks, () =>
+        {
+            bank.BeforeLoad();
+            spots.BeforeLoad();
+        });
         PieceRemoved.Apply(hooks, spots.Changed);
         LayoutScreen.Apply(hooks);
         LiveSettings.Watch(() =>

@@ -55,11 +55,11 @@ public static class PackRun
         return isDone ? new BankOutcome.PackedUp(piece.Name, isIntoBank, piece.IsStory, piece.IsInLayout && !isIntoBank) : new BankOutcome.Failed();
     }
 
-    /// <summary>Refundable at the shop's price: no paid price is kept, so the game works it out at the refund, and no shop restocks it.</summary>
+    /// <summary>Refundable at the piece's refund price (PackageModels.RefundPaid), and no shop restocks it.</summary>
     private static BankEntry EntryFor(Bank bank, PlacedPiece piece)
     {
         var slot = BankCounters.NextSlot(bank.Banked.Select(banked => banked.Entry.Slot));
 
-        return new BankEntry(slot, piece.ConfigId, piece.Dye, Paid: PaidUnknown, Source: 0, IsPurchased: true);
+        return new BankEntry(slot, piece.ConfigId, piece.Dye, Paid: piece.Paid, Source: 0, IsPurchased: true);
     }
 }
