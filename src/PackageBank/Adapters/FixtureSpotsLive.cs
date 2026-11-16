@@ -12,15 +12,17 @@ namespace PackageBank.Adapters;
 
 /// <summary>
 /// Puts the spots of <see cref="FixtureSpots"/> into the game. The rows go into the slot table as soon as it exists, and
-/// again before every save loads, so a piece saved on one of them keeps its spot. Once a second at home, each spot that
-/// should show gets its points on the map (the fixture's point, and a stand point copied from the nearest game spot of
-/// its type) and a clickable box copied from that spot's box; a spot that should no longer show loses both. While
-/// Uninstall prep is on, every piece on one of these spots is packed into a yard package. The full pass runs only when
-/// something it is drawn from changed, or every few seconds (<see cref="FixtureSpots.IsFullCheckDue"/>).
+/// again before every save loads, so a piece saved on one of them keeps its spot. A pass runs only after something that
+/// can change the spots: a load or a trip (both run the game's load), a piece packed up or removed, or a settings change.
+/// At home, each spot that should show gets its points on the map (the fixture's point, and a stand point copied from the
+/// nearest game spot of its type) and a clickable box copied from that spot's box; a spot that should no longer show loses
+/// both. While Uninstall prep is on, every piece on one of these spots is packed into a yard package. A pass that comes
+/// too early in a load tries again once a second until it is done (<see cref="FixtureSpots.IsPassDone"/>); otherwise
+/// nothing runs.
 /// </summary>
 internal sealed class FixtureSpotsLive
 {
-    private const float CheckSeconds = 1f;
+    private const float RetrySeconds = 1f;
     private const string SpotRootName = "BuildingPos";
 
     private readonly Func<long, string?> _packUp;
@@ -40,9 +42,8 @@ internal sealed class FixtureSpotsLive
     private int _tableVersion = -1;
     private IntPtr _map;
     private Transform? _root;
-    private float _nextCheck;
-    private float _nextFullCheck;
-    private HomeStamp _stamp;
+    private float _nextTry;
+    private volatile bool _isChanged = true;
     private volatile bool _isOn;
     private volatile bool _isUninstalling;
     private volatile int _settingsVersion;
@@ -60,16 +61,27 @@ internal sealed class FixtureSpotsLive
         _isOn = isOn;
         _isUninstalling = isUninstalling;
         _settingsVersion++;
-        _nextCheck = 0;
+        Changed();
+    }
+
+    /// <summary>Something that can open or close a spot happened; the next frame runs a pass. Safe from any thread.</summary>
+    public void Changed()
+    {
+        _nextTry = 0;
+        _isChanged = true;
     }
 
     public void Tick()
     {
+        if (!_isChanged) return;
+
         var now = Time.unscaledTime;
 
-        if (now < _nextCheck) return;
+        if (now < _nextTry) return;
 
-        _nextCheck = now + CheckSeconds;
+        // Cleared before the pass, so a change made during it (a piece Uninstall prep packs up) runs one more.
+        _isChanged = false;
+        _nextTry = now + RetrySeconds;
 
         if (_usedVersion != _settingsVersion)
         {
@@ -79,10 +91,16 @@ internal sealed class FixtureSpotsLive
 
         try
         {
-            if (GameSingleton.Existing<ConfigManager>() is not { } config) return;
+            if (GameSingleton.Existing<ConfigManager>() is not { } config)
+            {
+                _isChanged = true;
+
+                return;
+            }
 
             EnsureRows(config);
-            ApplyHome(config, now);
+
+            if (!ApplyHome(config)) _isChanged = true;
         }
         catch (Exception ex)
         {
@@ -96,6 +114,8 @@ internal sealed class FixtureSpotsLive
         try
         {
             if (GameSingleton.Existing<ConfigManager>() is { } config) EnsureRows(config);
+
+            Changed();
         }
         catch (Exception ex)
         {
@@ -156,14 +176,16 @@ internal sealed class FixtureSpotsLive
 
     // ---- the loaded home ----
 
-    private void ApplyHome(ConfigManager config, float now)
+    /// <summary>Whether the pass is done; false when it came too early in a load and has to try again.</summary>
+    private bool ApplyHome(ConfigManager config)
     {
         var map = config._customCache_k__BackingField?._MapConfig_k__BackingField;
         var agents = GameSingleton.Existing<BattleLogicWorld>()?._AgentManager;
         var role = agents?.GetLeadingRole();
+        var build = role == null ? null : AgentTools.GetAgentComponent<BuildComponent>(role);
 
-        if (map == null || agents == null || role == null || !HomeFixtures.IsAtHome(config, role)) return;
-        if (AgentTools.GetAgentComponent<BuildComponent>(role) is not { } build) return;
+        if (map == null || agents == null || role == null || build == null) return FixtureSpots.IsPassDone(hasWorld: false, isAtHome: false, hasBoxRoot: false);
+        if (!HomeFixtures.IsAtHome(config, role)) return FixtureSpots.IsPassDone(hasWorld: true, isAtHome: false, hasBoxRoot: false);
 
         if (map.Pointer != _map || _root == null)
         {
@@ -173,11 +195,6 @@ internal sealed class FixtureSpotsLive
             _root = null;
         }
 
-        var isStampSame = HomeStamp.Of(map, agents, build, _usedVersion, _root) == _stamp;
-
-        if (!FixtureSpots.IsFullCheckDue(isStampSame, _isUninstalling, now, _nextFullCheck)) return;
-
-        _nextFullCheck = now + FixtureSpots.FullCheckSeconds;
         ReadTaken(agents);
 
         if (_isUninstalling) PackUp();
@@ -187,8 +204,7 @@ internal sealed class FixtureSpotsLive
         FixtureSpots.Shown(_spots, _demolished, _pointsOnMap, _takenNames, _isOn, _isUninstalling, _shown);
         OpenAndClose(config, map);
 
-        // Taken after the spots opened and closed, since that writes to the map and finds the box root.
-        _stamp = HomeStamp.Of(map, agents, build, _usedVersion, _root);
+        return FixtureSpots.IsPassDone(hasWorld: true, isAtHome: true, FindRoot() != null);
     }
 
     private void OpenAndClose(ConfigManager config, Config_Map map)
@@ -419,29 +435,5 @@ internal sealed class FixtureSpotsLive
     private void ReportOnce(string what, Exception ex)
     {
         if (_reported.Add(what + ex.GetType().FullName)) _log($"{what} failed (reported once): {ex}");
-    }
-
-    /// <summary>
-    /// What the spots are drawn from, cheaply read: the map and its spot points, the game's list of everything in the home
-    /// (a piece built or packed up changes it), the taken-down fixtures (only ever added to), the settings, and the box
-    /// root (gone when the scene changes). A piece moved between spots changes none of it; the timed full check catches that.
-    /// </summary>
-    private readonly record struct HomeStamp(IntPtr Map, int PointsVersion, IntPtr Agents, int AgentsVersion, int AgentCount, int Demolished, int Settings, bool HasRoot)
-    {
-        public static HomeStamp Of(Config_Map map, AgentManager agents, BuildComponent build, int settings, Transform? root)
-        {
-            var points = map._BuildingNodeMap_k__BackingField;
-            var list = agents._agentList_k__BackingField;
-
-            return new HomeStamp(
-                map.Pointer,
-                points?._version ?? -1,
-                list?.Pointer ?? IntPtr.Zero,
-                list?._version ?? -1,
-                list?.Count ?? -1,
-                build.GetDemolishedGuidanceIds()?.Count ?? -1,
-                settings,
-                root != null);
-        }
     }
 }

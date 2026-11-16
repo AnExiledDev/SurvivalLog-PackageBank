@@ -172,17 +172,19 @@ public class FixtureSpotsTests
     }
 
     [Fact]
-    public void While_nothing_changes_the_full_check_waits_for_its_timer()
+    public void A_pass_tries_again_while_the_game_is_still_loading()
     {
-        Assert.False(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: false, now: 104, nextFullCheck: 110));
-        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: false, now: 110, nextFullCheck: 110));
+        // The load hook fires before the player and the scene's spot boxes exist; giving up then would leave the spots shut.
+        Assert.False(FixtureSpots.IsPassDone(hasWorld: false, isAtHome: false, hasBoxRoot: false));
+        Assert.False(FixtureSpots.IsPassDone(hasWorld: true, isAtHome: true, hasBoxRoot: false));
     }
 
     [Fact]
-    public void A_change_at_home_or_Uninstall_prep_checks_in_full_at_once()
+    public void A_pass_is_done_at_home_with_its_boxes_or_away_from_home()
     {
-        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: false, isUninstalling: false, now: 104, nextFullCheck: 110));
-        Assert.True(FixtureSpots.IsFullCheckDue(isStampSame: true, isUninstalling: true, now: 104, nextFullCheck: 110));
+        // Once done, nothing runs again until the next change, so a trip away must not keep the check going.
+        Assert.True(FixtureSpots.IsPassDone(hasWorld: true, isAtHome: true, hasBoxRoot: true));
+        Assert.True(FixtureSpots.IsPassDone(hasWorld: true, isAtHome: false, hasBoxRoot: false));
     }
 
     [Fact]

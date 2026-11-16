@@ -19,7 +19,7 @@ namespace PackageBank;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.packagebank";
-    private const string Version = "0.8.1";
+    private const string Version = "0.8.2";
 
     /// <summary>Exiled's Toolkit: its shared helpers, toasts, live settings and UI size all come from it.</summary>
     private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
@@ -76,6 +76,7 @@ public sealed class Plugin : BasePlugin
         var spots = new FixtureSpotsLive(bank.PackUpForUninstall, log.Write);
 
         LoadRows.Apply(hooks, spots.BeforeLoad);
+        PieceRemoved.Apply(hooks, spots.Changed);
         LayoutScreen.Apply(hooks);
         LiveSettings.Watch(() =>
         {

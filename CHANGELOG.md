@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- The spots where house furniture stood no longer check anything on a timer. They update only when you load a save, come home from a trip, pack up or remove furniture, or change a setting.
+
 ## 0.8.1
 
 - Changed: `SpotsWhereFixturesStood` is now off by default, so updating changes nothing until you turn it on.

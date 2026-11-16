@@ -32,9 +32,6 @@ public static class FixtureSpots
     private const int FirstSpotType = 1;
     private const int LastSpotType = 7;
 
-    /// <summary>How often the spots are checked in full even when nothing they are drawn from seems to have changed.</summary>
-    public const float FullCheckSeconds = 10;
-
     private const float OtherFloorPenalty = 1000;
 
     /// <summary>
@@ -123,12 +120,11 @@ public static class FixtureSpots
     }
 
     /// <summary>
-    /// Whether the once-a-second check does its full pass: when anything it watches changed (the map, the furniture list,
-    /// the taken-down fixtures, the settings, the box root), always during Uninstall prep (it packs pieces up as it goes),
-    /// and every <see cref="FullCheckSeconds"/> for what it cannot watch cheaply, such as a piece moved from one spot to another.
+    /// Whether a pass, run because something changed, finished its job. Before the game has a world and a player there is
+    /// nothing to check yet, and at home the spot boxes need the scene's box root, so both try again a second later. Away
+    /// from home there is nothing to do until the next arrival.
     /// </summary>
-    public static bool IsFullCheckDue(bool isStampSame, bool isUninstalling, float now, float nextFullCheck) =>
-        !isStampSame || isUninstalling || now >= nextFullCheck;
+    public static bool IsPassDone(bool hasWorld, bool isAtHome, bool hasBoxRoot) => hasWorld && (!isAtHome || hasBoxRoot);
 
     /// <summary>The floor a fixture's map point is on; the home's other maps (the ground floor, a neighbour's flat) are ground floors.</summary>
     public static int FloorOf(int mapPointId) => mapPointId is Basement or Upstairs ? mapPointId : GroundFloor;
