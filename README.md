@@ -63,9 +63,9 @@ The mod writes `BepInEx\package-bank.log`. A working install logs `===== Package
 
 ## Feedback
 
-Found a bug or have an idea? Come say hi on the [Core Directive Discord](https://discord.gg/trTsyxUFqg). For bugs, please include `BepInEx\LogOutput.log` and `BepInEx\package-bank.log`.
+Found a bug or have an idea? Come say hi in the [unofficial modding Discord for Survival Log](https://discord.gg/pDrQtqbZgb). For bugs, please include `BepInEx\LogOutput.log` and `BepInEx\package-bank.log`.
 
-To reach me directly, message `exiled.dev` on Discord. You can find me in the [official Survival Log Discord](https://discord.gg/MZGg4gQAUe). I'm also on X as [@AnExiledDev](https://x.com/AnExiledDev).
+To reach me directly, message `exiled.dev` on Discord. You can find me in the [unofficial modding Discord](https://discord.gg/pDrQtqbZgb) and the [official Survival Log Discord](https://discord.gg/MZGg4gQAUe). I'm also on X as [@AnExiledDev](https://x.com/AnExiledDev).
 
 A Survival Log wiki with detailed documentation for all of my mods is coming soon.
 
