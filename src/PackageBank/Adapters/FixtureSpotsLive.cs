@@ -80,7 +80,7 @@ internal sealed class FixtureSpotsLive
     {
         if (!_isChanged) return;
 
-        var now = Time.unscaledTime;
+        var now = BankTicker.Now;
 
         if (now < _nextTry) return;
 

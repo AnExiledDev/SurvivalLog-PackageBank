@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Kit;
 using UnityEngine;
 
 namespace PackageBank.Adapters;
@@ -16,6 +17,13 @@ public sealed class BankTicker : MonoBehaviour
     internal static FixtureSpotsLive? Spots;
     internal static Action<string> Log = _ => { };
     private static readonly HashSet<string> ReportedFailures = new();
+    private static readonly double LoadedAt = Clock.Now;
+
+    /// <summary>
+    /// Real seconds since the mod loaded, from the Toolkit clock. Counted from load so a float keeps its precision
+    /// however long the computer has been on.
+    /// </summary>
+    internal static float Now => (float)(Clock.Now - LoadedAt);
 
     public BankTicker(IntPtr pointer) : base(pointer)
     {

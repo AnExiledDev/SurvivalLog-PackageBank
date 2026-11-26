@@ -27,13 +27,13 @@ internal static class GameMenu
     public static void Opening(long id)
     {
         _openingOn = id;
-        _openingFrame = Time.frameCount;
+        _openingFrame = UnityFrame.Count();
     }
 
     /// <summary>What the menu is open on, or null while it is shut.</summary>
     public static long? OpenOn()
     {
-        if (_openingFrame == Time.frameCount) return _openingOn == 0 ? null : _openingOn;
+        if (_openingFrame == UnityFrame.Count()) return _openingOn == 0 ? null : _openingOn;
 
         var redux = GameSingleton.Existing<ReduxUISystem>();
 

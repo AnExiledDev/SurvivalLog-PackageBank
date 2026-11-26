@@ -56,7 +56,7 @@ internal sealed class BankSession
 
     public void Update()
     {
-        var now = Time.unscaledTime;
+        var now = BankTicker.Now;
         _page.KeepInstalled(now);
 
         while (_messages.TryTake(out var message)) HandleSafely(PageCommand.Parse(message));
@@ -172,7 +172,7 @@ internal sealed class BankSession
     /// </summary>
     private void Refresh()
     {
-        _nextRefreshAt = Time.unscaledTime + RefreshSeconds;
+        _nextRefreshAt = BankTicker.Now + RefreshSeconds;
 
         if (!_feed.Refresh(_isOpen)) Close();
     }

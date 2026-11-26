@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.4
+
+- Small speed up: the mod reads the time and the frame in a cheaper way.
+- Made for Survival Log 1.1.21671.
+
 ## 0.8.3
 
 - Fixed: Pack up failed on some house furniture, like the office clutter, the printer, the pallet jack and the wooden crate in the Warehouse Manager's home. The game has no package for these pieces, so the mod now gives each one a wooden box of its size, and Pack up works on them.
